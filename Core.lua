@@ -3,7 +3,7 @@ SustainMonitor = SustainMonitor or {}
 local SM = SustainMonitor
 
 SM.name = "SustainMonitor"
-SM.version = "1.2.0"
+SM.version = "1.3.0"
 
 ---------------------------------------------------------------------------
 -- Constants

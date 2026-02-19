@@ -50,6 +50,17 @@ SM.defaults = {
     soundHeavyAttack = "CHAMPION_POINT_GAINED",
     soundPotionReady = "QUEST_COMPLETED",
 
+    -- Alert Appearance
+    colorWarningYellow  = { 1, 0.84, 0, 1 },
+    colorWarningOrange  = { 1, 0.55, 0, 1 },
+    colorWarningRed     = { 1, 0, 0, 1 },
+    alertFontSize       = 28,
+
+    -- Potion Appearance
+    colorPotion         = { 0, 0.75, 1, 1 },
+    colorPotionReady    = { 0.2, 0.8, 0.2, 1 },
+    potionFontSize      = 22,
+
     -- Debug
     debugMode       = false,
 }
@@ -493,6 +504,141 @@ function SM.InitSettings()
             end,
             default = soundKeyToLabel[SM.defaults.soundPotionReady],
             disabled = function() return not SM.savedVars.warningSound end,
+        },
+
+        ---------------------------------------------------------------
+        -- Alert Appearance
+        ---------------------------------------------------------------
+        {
+            type = "header",
+            name = L.SETTINGS_ALERT_APPEARANCE,
+        },
+        {
+            type = "colorpicker",
+            name = L.SETTING_COLOR_WARN_YELLOW,
+            tooltip = L.SETTING_COLOR_WARN_YELLOW_TT,
+            getFunc = function()
+                local c = SM.savedVars.colorWarningYellow
+                return c[1], c[2], c[3], c[4]
+            end,
+            setFunc = function(r, g, b, a)
+                SM.savedVars.colorWarningYellow = { r, g, b, a }
+            end,
+            default = {
+                r = SM.defaults.colorWarningYellow[1],
+                g = SM.defaults.colorWarningYellow[2],
+                b = SM.defaults.colorWarningYellow[3],
+                a = SM.defaults.colorWarningYellow[4],
+            },
+        },
+        {
+            type = "colorpicker",
+            name = L.SETTING_COLOR_WARN_ORANGE,
+            tooltip = L.SETTING_COLOR_WARN_ORANGE_TT,
+            getFunc = function()
+                local c = SM.savedVars.colorWarningOrange
+                return c[1], c[2], c[3], c[4]
+            end,
+            setFunc = function(r, g, b, a)
+                SM.savedVars.colorWarningOrange = { r, g, b, a }
+            end,
+            default = {
+                r = SM.defaults.colorWarningOrange[1],
+                g = SM.defaults.colorWarningOrange[2],
+                b = SM.defaults.colorWarningOrange[3],
+                a = SM.defaults.colorWarningOrange[4],
+            },
+        },
+        {
+            type = "colorpicker",
+            name = L.SETTING_COLOR_WARN_RED,
+            tooltip = L.SETTING_COLOR_WARN_RED_TT,
+            getFunc = function()
+                local c = SM.savedVars.colorWarningRed
+                return c[1], c[2], c[3], c[4]
+            end,
+            setFunc = function(r, g, b, a)
+                SM.savedVars.colorWarningRed = { r, g, b, a }
+            end,
+            default = {
+                r = SM.defaults.colorWarningRed[1],
+                g = SM.defaults.colorWarningRed[2],
+                b = SM.defaults.colorWarningRed[3],
+                a = SM.defaults.colorWarningRed[4],
+            },
+        },
+        {
+            type = "slider",
+            name = L.SETTING_ALERT_FONT_SIZE,
+            tooltip = L.SETTING_ALERT_FONT_SIZE_TT,
+            min = 16,
+            max = 40,
+            step = 2,
+            getFunc = function() return SM.savedVars.alertFontSize end,
+            setFunc = function(value)
+                SM.savedVars.alertFontSize = value
+                SM.RebuildHUD()
+            end,
+            default = SM.defaults.alertFontSize,
+        },
+
+        ---------------------------------------------------------------
+        -- Potion Appearance
+        ---------------------------------------------------------------
+        {
+            type = "header",
+            name = L.SETTINGS_POTION_APPEARANCE,
+        },
+        {
+            type = "colorpicker",
+            name = L.SETTING_COLOR_POTION,
+            tooltip = L.SETTING_COLOR_POTION_TT,
+            getFunc = function()
+                local c = SM.savedVars.colorPotion
+                return c[1], c[2], c[3], c[4]
+            end,
+            setFunc = function(r, g, b, a)
+                SM.savedVars.colorPotion = { r, g, b, a }
+                SM.RebuildHUD()
+            end,
+            default = {
+                r = SM.defaults.colorPotion[1],
+                g = SM.defaults.colorPotion[2],
+                b = SM.defaults.colorPotion[3],
+                a = SM.defaults.colorPotion[4],
+            },
+        },
+        {
+            type = "colorpicker",
+            name = L.SETTING_COLOR_POTION_READY,
+            tooltip = L.SETTING_COLOR_POTION_READY_TT,
+            getFunc = function()
+                local c = SM.savedVars.colorPotionReady
+                return c[1], c[2], c[3], c[4]
+            end,
+            setFunc = function(r, g, b, a)
+                SM.savedVars.colorPotionReady = { r, g, b, a }
+            end,
+            default = {
+                r = SM.defaults.colorPotionReady[1],
+                g = SM.defaults.colorPotionReady[2],
+                b = SM.defaults.colorPotionReady[3],
+                a = SM.defaults.colorPotionReady[4],
+            },
+        },
+        {
+            type = "slider",
+            name = L.SETTING_POTION_FONT_SIZE,
+            tooltip = L.SETTING_POTION_FONT_SIZE_TT,
+            min = 14,
+            max = 36,
+            step = 2,
+            getFunc = function() return SM.savedVars.potionFontSize end,
+            setFunc = function(value)
+                SM.savedVars.potionFontSize = value
+                SM.RebuildHUD()
+            end,
+            default = SM.defaults.potionFontSize,
         },
 
         ---------------------------------------------------------------

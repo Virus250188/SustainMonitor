@@ -95,6 +95,26 @@ L.SETTING_SOUND_HEAVY_TT    = "Sound wenn ein Heavy Attack vorgeschlagen wird. B
 L.SETTING_SOUND_POTION      = "Trank-Bereit Sound"
 L.SETTING_SOUND_POTION_TT   = "Sound wenn dein Trank wieder verf\195\188gbar ist. Bei Auswahl wird eine Vorschau abgespielt."
 
+-- Settings: Alert-Darstellung
+L.SETTINGS_ALERT_APPEARANCE     = "Alert-Darstellung"
+L.SETTING_COLOR_WARN_YELLOW     = "Warnfarbe 1 (Gelb)"
+L.SETTING_COLOR_WARN_YELLOW_TT  = "Farbe f\195\188r die erste Warnstufe (Standard: Gelb)"
+L.SETTING_COLOR_WARN_ORANGE     = "Warnfarbe 2 (Orange)"
+L.SETTING_COLOR_WARN_ORANGE_TT  = "Farbe f\195\188r die zweite Warnstufe (Standard: Orange)"
+L.SETTING_COLOR_WARN_RED        = "Warnfarbe 3 (Rot)"
+L.SETTING_COLOR_WARN_RED_TT     = "Farbe f\195\188r die dritte Warnstufe und Blinken (Standard: Rot)"
+L.SETTING_ALERT_FONT_SIZE       = "Alert-Schriftgr\195\182\195\159e"
+L.SETTING_ALERT_FONT_SIZE_TT    = "Schriftgr\195\182\195\159e f\195\188r die Aktions-Hinweise in Bildschirmmitte (Heavy Attack / Trank nutzen)"
+
+-- Settings: Trank-Darstellung
+L.SETTINGS_POTION_APPEARANCE        = "Trank-Darstellung"
+L.SETTING_COLOR_POTION              = "Trank-Farbe"
+L.SETTING_COLOR_POTION_TT           = "Farbe f\195\188r das Trank-Label und Cooldown-Highlight (Standard: Cyan)"
+L.SETTING_COLOR_POTION_READY        = "Trank-Bereit Farbe"
+L.SETTING_COLOR_POTION_READY_TT     = "Farbe wenn der Trank bereit ist und Ressourcen in Ordnung sind (Standard: Gr\195\188n)"
+L.SETTING_POTION_FONT_SIZE          = "Trank-Zeile Schriftgr\195\182\195\159e"
+L.SETTING_POTION_FONT_SIZE_TT       = "Schriftgr\195\182\195\159e f\195\188r die Trank-Timer Zeile im HUD"
+
 -- Settings: Verhalten
 L.SETTING_HIDE_OOC          = "Au\195\159erhalb Kampf ausblenden"
 L.SETTING_HIDE_OOC_TT       = "HUD automatisch ausblenden wenn nicht im Kampf"

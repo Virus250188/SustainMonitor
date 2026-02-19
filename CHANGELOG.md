@@ -1,0 +1,54 @@
+# Changelog - Sustain Monitor
+
+## v1.3.0 (2026-02-19)
+
+### Neue Features
+- **Anpassbare Warnfarben:** Alle drei Warnstufen (Gelb/Orange/Rot) lassen sich jetzt per Colorpicker im Settings-Panel individuell einfaerben
+- **Alert-Schriftgroesse:** Die Schriftgroesse der Bildschirmmitte-Aktionshinweise (Heavy Attack / Trank nutzen) ist jetzt per Slider konfigurierbar (16-40pt)
+- **Trank-Farbe anpassbar:** Die Farbe des Trank-Labels und des Cooldown-Highlights kann frei gewaehlt werden (Standard: Cyan)
+- **Trank-Bereit Farbe:** Separate Farbe fuer den "Bereit"-Zustand des Tranks (Standard: Gruen)
+- **Trank-Schriftgroesse:** Die Schriftgroesse der Trank-Zeile im HUD ist jetzt konfigurierbar (14-36pt)
+
+### Settings-Panel
+- Neuer Bereich "Alert-Darstellung" mit 3 Colorpickern und 1 Slider
+- Neuer Bereich "Trank-Darstellung" mit 2 Colorpickern und 1 Slider
+- Alle neuen Settings haben "Auf Standard zuruecksetzen" Unterstuetzung
+
+### Technisch
+- Hardcodierte Farbwerte in UI.lua und Warnings.lua durch Saved Variables ersetzt
+- Neue Defaults in SM.defaults fuer alle Farb- und Groessen-Optionen
+- Lokalisierung fuer EN und DE komplett
+
+---
+
+## v1.2.0
+
+### Features
+- Drei Display-Styles: Einfach, Analytisch, Kampf
+- Heavy Attack Vorschlag mit konfigurierbaren Schwellwerten
+- Potion-Cooldown Tracking (Event-Driven + Polling-Fallback)
+- Dreistufiges Warnsystem (Gelb/Orange/Rot) mit Blinken und Sound
+- Live-Sparkline-Graphen (Analytisch-Stil)
+- Verbleibende Casts Anzeige basierend auf ausgeruesteten Skills
+- Kompakter Modus (Einfach-Stil)
+- 20 konfigurierbare Sound-Optionen fuer Warnungen
+- Debug-Modus mit Combat-Log
+- Vollstaendige DE/EN Lokalisierung
+
+---
+
+## v1.1.0
+
+### Features
+- Grundlegende Burn-Rate Berechnung mit EMA-Glaettung
+- Time-to-Empty Vorhersage
+- Konfigurierbares HUD mit Drag-and-Drop Positionierung
+- LibAddonMenu-2.0 Settings-Panel
+
+---
+
+## v1.0.0
+
+### Erstveroeffentlichung
+- Initiale Version mit Magicka/Stamina/Health Monitoring
+- Einfache Ressourcen-Anzeige

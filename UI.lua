@@ -28,15 +28,33 @@ local COMBAT_LABEL_W = 70
 local COMBAT_RATE_W  = 100
 local COMBAT_TIME_W  = 80
 
--- Colors
+-- Colors (static defaults; warning & potion colors are read from saved vars at runtime)
 local RESOURCE_COLORS = {}
 local COLOR_GREEN   = { 0.2, 0.8, 0.2, 1 }
 local COLOR_WHITE   = { 1,   1,   1,   1 }
-local COLOR_YELLOW  = { 1, 0.84, 0, 1 }
-local COLOR_ORANGE  = { 1, 0.55, 0, 1 }
-local COLOR_RED     = { 1,   0,   0,   1 }
-local COLOR_CYAN    = { 0, 0.75, 1, 1 }
 local COLOR_DIM     = { 0.5, 0.5, 0.5, 1 }
+
+-- Helper: get customizable colors from saved vars (with hardcoded fallbacks)
+local function GetColorYellow()
+    local sv = SM.savedVars
+    return (sv and sv.colorWarningYellow) or { 1, 0.84, 0, 1 }
+end
+local function GetColorOrange()
+    local sv = SM.savedVars
+    return (sv and sv.colorWarningOrange) or { 1, 0.55, 0, 1 }
+end
+local function GetColorRed()
+    local sv = SM.savedVars
+    return (sv and sv.colorWarningRed) or { 1, 0, 0, 1 }
+end
+local function GetColorPotion()
+    local sv = SM.savedVars
+    return (sv and sv.colorPotion) or { 0, 0.75, 1, 1 }
+end
+local function GetColorPotionReady()
+    local sv = SM.savedVars
+    return (sv and sv.colorPotionReady) or { 0.2, 0.8, 0.2, 1 }
+end
 
 ---------------------------------------------------------------------------
 -- State
@@ -303,19 +321,21 @@ end
 ---------------------------------------------------------------------------
 function SM.CreatePotionRow(yOffset, sv)
     local compact = sv.compactMode and (sv.displayStyle or "simple") == "simple"
+    local potionSize = sv.potionFontSize or 22
+    local potionFont = string.format("$(BOLD_FONT)|%d|soft-shadow-thick", potionSize)
 
     local row = WINDOW_MANAGER:CreateControl(nil, hudControl, CT_CONTROL)
     row:SetDimensions(hudControl:GetWidth() - PADDING * 2, ROW_HEIGHT)
     row:SetAnchor(TOPLEFT, hudControl, TOPLEFT, PADDING, yOffset)
 
     local labelW = compact and CLABEL_W or LABEL_W
-    local label = CreateLabel(row, labelW, ROW_HEIGHT, TEXT_ALIGN_LEFT, "ZoFontGameSmall")
+    local label = CreateLabel(row, labelW, ROW_HEIGHT, TEXT_ALIGN_LEFT, potionFont)
     label:SetAnchor(LEFT, row, LEFT, 0, 0)
-    label:SetColor(unpack(COLOR_CYAN))
+    label:SetColor(unpack(GetColorPotion()))
     label:SetText(SM.L.POTION)
 
     local timerW = compact and CRATE_W or RATE_W
-    local timer = CreateLabel(row, timerW, ROW_HEIGHT, TEXT_ALIGN_RIGHT, "ZoFontGameSmall")
+    local timer = CreateLabel(row, timerW, ROW_HEIGHT, TEXT_ALIGN_RIGHT, potionFont)
     timer:SetAnchor(LEFT, label, RIGHT, GAP, 0)
 
     return { row = row, label = label, timer = timer }
@@ -325,16 +345,20 @@ end
 -- Create Combat potion row
 ---------------------------------------------------------------------------
 function SM.CreateCombatPotionRow(yOffset)
+    local sv = SM.savedVars
+    local potionSize = (sv and sv.potionFontSize) or 22
+    local potionFont = string.format("$(BOLD_FONT)|%d|soft-shadow-thick", potionSize)
+
     local row = WINDOW_MANAGER:CreateControl(nil, hudControl, CT_CONTROL)
     row:SetDimensions(hudControl:GetWidth() - PADDING * 2, COMBAT_ROW_H)
     row:SetAnchor(TOPLEFT, hudControl, TOPLEFT, PADDING, yOffset)
 
-    local label = CreateLabel(row, COMBAT_LABEL_W, COMBAT_ROW_H, TEXT_ALIGN_LEFT, COMBAT_FONT)
+    local label = CreateLabel(row, COMBAT_LABEL_W, COMBAT_ROW_H, TEXT_ALIGN_LEFT, potionFont)
     label:SetAnchor(LEFT, row, LEFT, 0, 0)
-    label:SetColor(unpack(COLOR_CYAN))
+    label:SetColor(unpack(GetColorPotion()))
     label:SetText(SM.L.POTION)
 
-    local timer = CreateLabel(row, COMBAT_RATE_W, COMBAT_ROW_H, TEXT_ALIGN_RIGHT, COMBAT_FONT)
+    local timer = CreateLabel(row, COMBAT_RATE_W, COMBAT_ROW_H, TEXT_ALIGN_RIGHT, potionFont)
     timer:SetAnchor(LEFT, label, RIGHT, GAP, 0)
 
     return { row = row, label = label, timer = timer }
@@ -377,9 +401,9 @@ end
 function SM.CreateActionPrompt(style)
     if actionPrompt then return end
 
-    local promptFont = style == "combat"
-        and "$(BOLD_FONT)|$(KB_28)|soft-shadow-thick"
-        or  "$(BOLD_FONT)|$(KB_22)|soft-shadow-thick"
+    local sv = SM.savedVars
+    local fontSize = (sv and sv.alertFontSize) or 28
+    local promptFont = string.format("$(BOLD_FONT)|%d|soft-shadow-thick", fontSize)
 
     local prompt = WINDOW_MANAGER:CreateTopLevelWindow(TopLevelName("SustainMonitorPrompt"))
     prompt:SetDimensions(400, 50)
@@ -502,9 +526,9 @@ function SM.GetWarningColor(timeToEmpty, burnRate)
     if not sv or not sv.warningEnabled then return COLOR_WHITE end
 
     if timeToEmpty >= 0 then
-        if timeToEmpty < sv.warningThreshold3 then return COLOR_RED
-        elseif timeToEmpty < sv.warningThreshold2 then return COLOR_ORANGE
-        elseif timeToEmpty < sv.warningThreshold1 then return COLOR_YELLOW
+        if timeToEmpty < sv.warningThreshold3 then return GetColorRed()
+        elseif timeToEmpty < sv.warningThreshold2 then return GetColorOrange()
+        elseif timeToEmpty < sv.warningThreshold1 then return GetColorYellow()
         end
     end
 
@@ -537,11 +561,11 @@ function SM.UpdatePotionUI()
             end
         end
         if highlight then
-            potionRow.timer:SetColor(unpack(COLOR_CYAN))
-            potionRow.label:SetColor(unpack(COLOR_CYAN))
+            potionRow.timer:SetColor(unpack(GetColorPotion()))
+            potionRow.label:SetColor(unpack(GetColorPotion()))
         else
-            potionRow.timer:SetColor(unpack(COLOR_GREEN))
-            potionRow.label:SetColor(unpack(COLOR_CYAN))
+            potionRow.timer:SetColor(unpack(GetColorPotionReady()))
+            potionRow.label:SetColor(unpack(GetColorPotion()))
         end
     end
 end

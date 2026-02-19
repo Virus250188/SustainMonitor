@@ -102,6 +102,26 @@ SustainMonitor.L = {
     SETTING_SOUND_POTION    = "Potion Ready Sound",
     SETTING_SOUND_POTION_TT = "Sound played when your potion comes off cooldown. Selecting a sound will preview it.",
 
+    -- Settings: Alert Appearance
+    SETTINGS_ALERT_APPEARANCE   = "Alert Appearance",
+    SETTING_COLOR_WARN_YELLOW   = "Warning Color 1 (Yellow)",
+    SETTING_COLOR_WARN_YELLOW_TT = "Color for the first warning level (default: yellow)",
+    SETTING_COLOR_WARN_ORANGE   = "Warning Color 2 (Orange)",
+    SETTING_COLOR_WARN_ORANGE_TT = "Color for the second warning level (default: orange)",
+    SETTING_COLOR_WARN_RED      = "Warning Color 3 (Red)",
+    SETTING_COLOR_WARN_RED_TT   = "Color for the third warning level and flashing (default: red)",
+    SETTING_ALERT_FONT_SIZE     = "Alert Font Size",
+    SETTING_ALERT_FONT_SIZE_TT  = "Font size for the center-screen action prompts (Heavy Attack / Use Potion)",
+
+    -- Settings: Potion Appearance
+    SETTINGS_POTION_APPEARANCE      = "Potion Appearance",
+    SETTING_COLOR_POTION            = "Potion Color",
+    SETTING_COLOR_POTION_TT         = "Color for the potion label and cooldown highlight (default: cyan)",
+    SETTING_COLOR_POTION_READY      = "Potion Ready Color",
+    SETTING_COLOR_POTION_READY_TT   = "Color shown when the potion is ready and resources are OK (default: green)",
+    SETTING_POTION_FONT_SIZE        = "Potion Row Font Size",
+    SETTING_POTION_FONT_SIZE_TT     = "Font size for the potion timer row in the HUD",
+
     -- Settings: Behavior
     SETTING_HIDE_OOC        = "Hide Out of Combat",
     SETTING_HIDE_OOC_TT     = "Automatically hide the HUD when not in combat",

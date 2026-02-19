@@ -296,7 +296,8 @@ function SM.UpdatePotionState()
                 Debug("Playing POTION READY sound")
             end
             if SM.ShowActionPrompt then
-                SM.ShowActionPrompt(SM.L.PROMPT_USE_POTION, { 0, 0.75, 1, 1 }, 2500)
+                local potionColor = (sv and sv.colorPotion) or { 0, 0.75, 1, 1 }
+                SM.ShowActionPrompt(SM.L.PROMPT_USE_POTION, potionColor, 2500)
             end
         end
     end
@@ -356,7 +357,8 @@ function SM.CheckHeavyAttack()
                         PlaySound(GetSoundPotionReady())
                     end
                     if SM.ShowActionPrompt then
-                        SM.ShowActionPrompt(SM.L.PROMPT_USE_POTION, { 0, 0.75, 1, 1 }, 2500, true)
+                        local potionColor = (sv and sv.colorPotion) or { 0, 0.75, 1, 1 }
+                        SM.ShowActionPrompt(SM.L.PROMPT_USE_POTION, potionColor, 2500, true)
                     end
                     return
                 end
@@ -364,7 +366,9 @@ function SM.CheckHeavyAttack()
                 -- Heavy Attack: RED + blink if critically low (<3% or 0 casts), GOLD otherwise
                 local isCritical = res.currentPercent < CRITICAL_PCT
                     or (res.castsRemaining and res.castsRemaining <= 0)
-                local color = isCritical and { 1, 0, 0, 1 } or { 1, 0.84, 0, 1 }
+                local colorRed = (sv and sv.colorWarningRed) or { 1, 0, 0, 1 }
+                local colorYellow = (sv and sv.colorWarningYellow) or { 1, 0.84, 0, 1 }
+                local color = isCritical and colorRed or colorYellow
                 Debug(string.format("Heavy Attack: PT=%s pct=%.1f%% casts=%s %s",
                     tostring(powerType), res.currentPercent,
                     tostring(res.castsRemaining), isCritical and "CRITICAL" or "normal"))
