@@ -27,6 +27,8 @@ Clean, minimal display showing burn-rate and time-to-empty for each resource.
 ### Analytical
 Adds live sparkline graphs for resource history over time.
 
+![Analytical Style - Tracker Close-up](images/UI_Style_Analytis.png)
+
 ![Analytical Style - Low Resources Warning](images/UI_Style_Analytisch_NO_Ress.png)
 
 ### Combat
