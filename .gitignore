@@ -1,0 +1,13 @@
+# ESO SavedVariables (user-specific data, not part of the addon)
+*.savedvariables
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
