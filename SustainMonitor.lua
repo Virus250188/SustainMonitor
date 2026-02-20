@@ -208,7 +208,8 @@ function SM.RegisterEvents()
     -- Player activated (login, zone change, resurrect)
     em:RegisterForEvent(SM.name .. "Activated", EVENT_PLAYER_ACTIVATED, SM.OnPlayerActivated)
 
-    -- Player alive (after death)
+    -- Player death / alive
+    em:RegisterForEvent(SM.name .. "Dead",  EVENT_PLAYER_DEAD,  SM.OnPlayerDead)
     em:RegisterForEvent(SM.name .. "Alive", EVENT_PLAYER_ALIVE, SM.OnPlayerAlive)
 
     -- Potion usage detection (event-driven for accurate cooldown tracking)

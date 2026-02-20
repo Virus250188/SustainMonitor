@@ -1,5 +1,14 @@
 # Changelog - Sustain Monitor
 
+## v1.3.1 (2026-02-20)
+
+### Bugfix
+- **Tod-Erkennung:** Warnungen, Sounds, Blink-Effekte und Heavy-Attack-Vorschlaege werden jetzt unterdrueckt wenn der Spieler tot ist
+- HUD wird beim Tod automatisch ausgeblendet und nach dem Revive zurueckgesetzt
+- `EVENT_PLAYER_DEAD` wird jetzt registriert und verarbeitet
+
+---
+
 ## v1.3.0 (2026-02-19)
 
 ### Neue Features

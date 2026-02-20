@@ -103,6 +103,7 @@ end
 -- Check warnings per resource
 ---------------------------------------------------------------------------
 function SM.CheckWarnings(powerType)
+    if SM.IsPlayerDead and SM.IsPlayerDead() then return end
     local sv = SM.savedVars
     if not sv or not sv.warningEnabled then return end
 
@@ -139,6 +140,7 @@ end
 -- Flash update
 ---------------------------------------------------------------------------
 function SM.UpdateFlash()
+    if SM.IsPlayerDead and SM.IsPlayerDead() then return end
     local sv = SM.savedVars
     if not sv or not sv.warningFlash then return end
 
@@ -272,6 +274,7 @@ end
 -- Potion state transitions (called from periodic update)
 ---------------------------------------------------------------------------
 function SM.UpdatePotionState()
+    if SM.IsPlayerDead and SM.IsPlayerDead() then return end
     local sv = SM.savedVars
     if not sv then return end
 
@@ -309,6 +312,7 @@ end
 -- Heavy Attack Suggestion
 ---------------------------------------------------------------------------
 function SM.CheckHeavyAttack()
+    if SM.IsPlayerDead and SM.IsPlayerDead() then return end
     local sv = SM.savedVars
     if not sv or not sv.haEnabled then return end
     if not SM.IsInCombat() then return end

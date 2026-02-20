@@ -3,7 +3,7 @@ SustainMonitor = SustainMonitor or {}
 local SM = SustainMonitor
 
 SM.name = "SustainMonitor"
-SM.version = "1.3.0"
+SM.version = "1.3.1"
 
 ---------------------------------------------------------------------------
 -- Constants
@@ -19,7 +19,8 @@ local HISTORY_MAX   = 60      -- 30 seconds at 2 samples/sec
 ---------------------------------------------------------------------------
 local resources = {}
 local histories = {}
-local inCombat  = false
+local inCombat      = false
+local playerIsDead  = false
 
 -- Ability cost data (per bar, per resource type)
 local barCosts = {}   -- barCosts[hotbarCategory][powerType] = { cost1, cost2, ... }
@@ -640,10 +641,27 @@ function SM.OnPlayerActivated()
 end
 
 ---------------------------------------------------------------------------
+-- EVENT_PLAYER_DEAD handler
+---------------------------------------------------------------------------
+function SM.OnPlayerDead()
+    playerIsDead = true
+    SM.ResetAllResources()
+    if SM.HideHUD then SM.HideHUD() end
+end
+
+---------------------------------------------------------------------------
 -- EVENT_PLAYER_ALIVE handler (after death)
 ---------------------------------------------------------------------------
 function SM.OnPlayerAlive()
+    playerIsDead = false
     SM.ResetAllResources()
+end
+
+---------------------------------------------------------------------------
+-- Death state query (used by Warnings.lua)
+---------------------------------------------------------------------------
+function SM.IsPlayerDead()
+    return playerIsDead
 end
 
 ---------------------------------------------------------------------------
