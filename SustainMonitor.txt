@@ -1,11 +1,11 @@
 ## Title: |cAAD1FFSustain Monitor|r
 ## Description: Real-time resource dashboard with burn-rate and time-to-empty prediction
 ## Author: Miguel
-## Version: 1.3.1
+## Version: 1.3.2
 ## APIVersion: 101048 101049
-## AddOnVersion: 5
+## AddOnVersion: 6
 ## SavedVariables: SustainMonitorSV SustainMonitorLog
-## DependsOn: LibAddonMenu-2.0
+## DependsOn: LibAddonMenu-2.0>=41
 ## OptionalDependsOn: LibMediaProvider
 
 lang/default.lua

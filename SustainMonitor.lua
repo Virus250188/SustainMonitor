@@ -20,10 +20,10 @@ local function OnAddonLoaded(eventCode, addonName)
     EVENT_MANAGER:UnregisterForEvent(SM.name .. "Load", EVENT_ADD_ON_LOADED)
 
     -- Load saved variables
-    SM.savedVars = ZO_SavedVars:NewAccountWide("SustainMonitorSV", 1, nil, SM.defaults)
+    SM.savedVars = ZO_SavedVars:NewAccountWide("SustainMonitorSV", 1, GetWorldName(), SM.defaults)
 
     -- Load combat log saved variable (separate file for easy sharing)
-    SM.logVars = ZO_SavedVars:NewAccountWide("SustainMonitorLog", 1, nil, { entries = {}, info = "" })
+    SM.logVars = ZO_SavedVars:NewAccountWide("SustainMonitorLog", 1, GetWorldName(), { entries = {}, info = "" })
 
     -- Initialize modules
     SM.InitCore()

@@ -1,5 +1,14 @@
 # Changelog - Sustain Monitor
 
+## v1.3.2 (2026-02-20)
+
+### ESOUI Compliance Fixes
+- **DependsOn Versionscheck:** `LibAddonMenu-2.0>=41` hinzugefuegt (ESOUI Pflicht-Regel)
+- **SavedVariables Server-Trennung:** `GetWorldName()` als Namespace-Parameter hinzugefuegt, damit Settings pro Server (EU/NA/PTS) getrennt gespeichert werden
+- **Hinweis:** Bestehende Einstellungen werden einmalig zurueckgesetzt (neuer Speicherpfad pro Server)
+
+---
+
 ## v1.3.1 (2026-02-20)
 
 ### Bugfix
