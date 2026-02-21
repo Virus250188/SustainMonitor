@@ -1,5 +1,12 @@
 # Changelog - Sustain Monitor
 
+## v1.3.3 (2026-02-21)
+
+### Bugfix
+- **Minion Kompatibilitaet:** ZIP-Paket wird jetzt mit standardkonformen Forward-Slashes und Directory-Eintraegen erstellt. Behebt das Problem, dass Minion das Addon nicht automatisch entpacken konnte.
+
+---
+
 ## v1.3.2 (2026-02-20)
 
 ### ESOUI Compliance Fixes
