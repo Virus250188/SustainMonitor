@@ -64,6 +64,7 @@ local rows           = {}
 local potionRow      = nil
 local actionPrompt   = nil
 local isHUDVisible   = false
+local hudFragment    = nil
 local hideTimestamp   = 0
 local promptHideTime = 0
 local promptBlinking = false
@@ -164,10 +165,10 @@ function SM.CreateHUD()
     hudControl:SetDimensions(width, height)
     hudControl:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, sv.posX, sv.posY)
     hudControl:SetMovable(not sv.locked)
-    hudControl:SetMouseEnabled(true)
+    hudControl:SetMouseEnabled(not sv.locked)
     hudControl:SetClampedToScreen(true)
     hudControl:SetDrawLayer(DL_OVERLAY)
-    hudControl:SetDrawTier(DT_HIGH)
+    hudControl:SetDrawTier(DT_LOW)
 
     hudControl:SetHandler("OnMoveStop", function(self)
         sv.posX = self:GetLeft()
@@ -222,6 +223,20 @@ function SM.CreateHUD()
     end
 
     hudControl:SetScale(sv.scale or 1.0)
+
+    -- Register as a HUD fragment so the control hides during full-screen UI (map, inventory, etc.)
+    hudFragment = ZO_HUDFadeSceneFragment:New(hudControl)
+    HUD_SCENE:AddFragment(hudFragment)
+    HUD_UI_SCENE:AddFragment(hudFragment)
+
+    -- Override fragment Show to respect the addon's own visibility state (hideOutOfCombat)
+    local originalShow = hudFragment.Show
+    hudFragment.Show = function(self, ...)
+        originalShow(self, ...)
+        if not isHUDVisible then
+            hudControl:SetHidden(true)
+        end
+    end
 
     SM.CreateActionPrompt(style)
 
@@ -409,7 +424,7 @@ function SM.CreateActionPrompt(style)
     prompt:SetDimensions(400, 50)
     prompt:SetAnchor(CENTER, GuiRoot, CENTER, 0, 180)
     prompt:SetDrawLayer(DL_OVERLAY)
-    prompt:SetDrawTier(DT_HIGH)
+    prompt:SetDrawTier(DT_LOW)
     prompt:SetHidden(true)
 
     local label = WINDOW_MANAGER:CreateControl(nil, prompt, CT_LABEL)
@@ -644,6 +659,11 @@ end
 function SM.RebuildHUD()
     if hudControl then
         EVENT_MANAGER:UnregisterForUpdate(SM.name .. "UIUpdate")
+        if hudFragment then
+            HUD_SCENE:RemoveFragment(hudFragment)
+            HUD_UI_SCENE:RemoveFragment(hudFragment)
+            hudFragment = nil
+        end
         hudControl:SetHidden(true)
         hudControl = nil
         rows = {}
@@ -665,7 +685,10 @@ function SM.SetHUDScale(scale)
 end
 
 function SM.SetHUDLocked(locked)
-    if hudControl then hudControl:SetMovable(not locked) end
+    if hudControl then
+        hudControl:SetMovable(not locked)
+        hudControl:SetMouseEnabled(not locked)
+    end
 end
 
 function SM.ResetHUDPosition()

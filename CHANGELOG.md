@@ -1,5 +1,20 @@
 # Changelog - Sustain Monitor
 
+## v1.4.0 (2026-02-28)
+
+### Neue Features
+- **Click-Through wenn gesperrt:** Das HUD-Fenster ist jetzt klick-durchlaessig wenn die Position gesperrt ist. Klicks auf den HUD-Bereich werden an die Spielwelt weitergeleitet, sodass z.B. der Maus-Cursor-Modus per Klick verlassen werden kann.
+- **HUD unter Vollbild-UI ausgeblendet:** Das HUD wird jetzt automatisch ausgeblendet wenn Vollbild-Oberflaechen wie die Weltkarte, das Inventar oder andere Menues geoeffnet werden. Beim Schliessen erscheint es automatisch wieder. Verwendet ESO's Scene-Fragment-System (HUD_SCENE / HUD_UI_SCENE).
+
+### Technisch
+- `SetMouseEnabled` wird jetzt an den Lock-Status gekoppelt (statt immer `true`)
+- `ZO_HUDFadeSceneFragment` Integration mit Show-Hook fuer hideOutOfCombat-Kompatibilitaet
+- DrawTier von `DT_HIGH` auf `DT_LOW` gesenkt (HUD und Action-Prompt)
+- Fragment-Cleanup in `RebuildHUD` hinzugefuegt
+- Tooltip fuer "Position sperren" aktualisiert (EN/DE)
+
+---
+
 ## v1.3.3 (2026-02-21)
 
 ### Bugfix

@@ -42,7 +42,7 @@ SustainMonitor.L = {
     SETTING_ENABLED     = "Enable Addon",
     SETTING_ENABLED_TT  = "Enable or disable the Sustain Monitor overlay",
     SETTING_LOCKED      = "Lock Position",
-    SETTING_LOCKED_TT   = "Lock the HUD position to prevent accidental dragging",
+    SETTING_LOCKED_TT   = "Lock the HUD position to prevent accidental dragging. When locked, the HUD is click-through.",
     SETTING_SCALE       = "UI Scale",
     SETTING_SCALE_TT    = "Scale the HUD element (0.5 = half size, 2.0 = double size)",
     SETTING_RESET_POS   = "Reset Position",
