@@ -1,20 +1,15 @@
--- SustainMonitor: Settings - LibAddonMenu-2.0 Panel & Saved Variables
 SustainMonitor = SustainMonitor or {}
 local SM = SustainMonitor
 
 ---------------------------------------------------------------------------
--- Default Saved Variables
----------------------------------------------------------------------------
 SM.defaults = {
-    -- General
     enabled         = true,
     locked          = false,
     scale           = 1.0,
     posX            = 400,
     posY            = 800,
 
-    -- Display
-    displayStyle    = "simple",     -- "simple", "analytical", "combat"
+    displayStyle    = "simple",
     compactMode     = false,
     showMagicka     = true,
     showStamina     = true,
@@ -22,18 +17,15 @@ SM.defaults = {
     showPotion      = true,
     showBars        = true,
     showRestzeit    = true,
-    showGraph       = true,         -- Analytical style: sparkline graphs
-    showCastsRemaining = true,      -- Show [X] casts remaining next to TTE
+    showGraph       = true,
+    showCastsRemaining = true,
 
-    -- Calculation
     smoothingAlpha  = 0.3,
 
-    -- Heavy Attack Suggestion
     haEnabled       = true,
-    haThreshold     = 8,            -- seconds: suggest when timeToEmpty < this
-    haResourcePct   = 50,           -- %: only suggest when resource < this %
+    haThreshold     = 8,
+    haResourcePct   = 50,
 
-    -- Warnings
     warningEnabled      = true,
     warningThreshold1   = 10,
     warningThreshold2   = 5,
@@ -41,44 +33,33 @@ SM.defaults = {
     warningSound        = true,
     warningFlash        = true,
 
-    -- Behavior
     hideOutOfCombat = true,
     fadeDelay       = 3,
 
-    -- Sounds (SOUNDS table key names)
     soundWarning     = "GENERAL_ALERT_ERROR",
     soundHeavyAttack = "CHAMPION_POINT_GAINED",
     soundPotionReady = "QUEST_COMPLETED",
 
-    -- Alert Appearance
     colorWarningYellow  = { 1, 0.84, 0, 1 },
     colorWarningOrange  = { 1, 0.55, 0, 1 },
     colorWarningRed     = { 1, 0, 0, 1 },
     alertFontSize       = 28,
 
-    -- Potion Appearance
     colorPotion         = { 0, 0.75, 1, 1 },
     colorPotionReady    = { 0.2, 0.8, 0.2, 1 },
     potionFontSize      = 22,
 
-    -- Resource Focus
     resourceFocus   = "auto",
-
-    -- Graph Style
-    graphStyle      = "line",       -- "line" or "bar"
-
-    -- Debug
+    graphStyle      = "line",
     debugMode       = false,
 }
 
 ---------------------------------------------------------------------------
--- Style choices for dropdown
 ---------------------------------------------------------------------------
 local styleChoices    = {}
 local styleValues     = { "simple", "analytical", "combat" }
 
 ---------------------------------------------------------------------------
--- Sound choices for alert dropdowns
 ---------------------------------------------------------------------------
 local soundOptions = {
     { label = "General Alert Error",     key = "GENERAL_ALERT_ERROR" },
@@ -145,7 +126,6 @@ local function StyleDisplayToValue(display)
 end
 
 ---------------------------------------------------------------------------
--- Initialize Settings
 ---------------------------------------------------------------------------
 function SM.InitSettings()
     local L = SM.L
@@ -166,9 +146,7 @@ function SM.InitSettings()
     LAM:RegisterAddonPanel(SM.name .. "Options", panelData)
 
     local optionsData = {
-        ---------------------------------------------------------------
         -- General
-        ---------------------------------------------------------------
         {
             type = "header",
             name = L.SETTINGS_GENERAL,
@@ -222,9 +200,7 @@ function SM.InitSettings()
             func = function() SM.ResetHUDPosition() end,
         },
 
-        ---------------------------------------------------------------
         -- Display
-        ---------------------------------------------------------------
         {
             type = "header",
             name = L.SETTINGS_DISPLAY,
@@ -355,9 +331,7 @@ function SM.InitSettings()
             default = SM.defaults.showCastsRemaining,
         },
 
-        ---------------------------------------------------------------
         -- Calculation
-        ---------------------------------------------------------------
         {
             type = "header",
             name = L.SETTINGS_CALCULATION,
@@ -376,9 +350,7 @@ function SM.InitSettings()
             default = SM.defaults.smoothingAlpha * 100,
         },
 
-        ---------------------------------------------------------------
-        -- Heavy Attack Suggestion
-        ---------------------------------------------------------------
+        -- Heavy Attack
         {
             type = "header",
             name = L.SETTINGS_HEAVY_ATTACK,
@@ -416,9 +388,7 @@ function SM.InitSettings()
             disabled = function() return not SM.savedVars.haEnabled end,
         },
 
-        ---------------------------------------------------------------
         -- Warnings
-        ---------------------------------------------------------------
         {
             type = "header",
             name = L.SETTINGS_WARNINGS,
@@ -546,9 +516,7 @@ function SM.InitSettings()
             disabled = function() return not SM.savedVars.warningSound end,
         },
 
-        ---------------------------------------------------------------
         -- Alert Appearance
-        ---------------------------------------------------------------
         {
             type = "header",
             name = L.SETTINGS_ALERT_APPEARANCE,
@@ -622,9 +590,7 @@ function SM.InitSettings()
             default = SM.defaults.alertFontSize,
         },
 
-        ---------------------------------------------------------------
         -- Potion Appearance
-        ---------------------------------------------------------------
         {
             type = "header",
             name = L.SETTINGS_POTION_APPEARANCE,
@@ -681,9 +647,7 @@ function SM.InitSettings()
             default = SM.defaults.potionFontSize,
         },
 
-        ---------------------------------------------------------------
         -- Behavior
-        ---------------------------------------------------------------
         {
             type = "header",
             name = L.SETTINGS_BEHAVIOR,
@@ -715,9 +679,7 @@ function SM.InitSettings()
             default = SM.defaults.fadeDelay,
         },
 
-        ---------------------------------------------------------------
-        -- Developer / Debug
-        ---------------------------------------------------------------
+        -- Debug
         {
             type = "header",
             name = L.SETTINGS_DEBUG,
@@ -736,7 +698,6 @@ function SM.InitSettings()
 end
 
 ---------------------------------------------------------------------------
--- Slash Commands
 ---------------------------------------------------------------------------
 function SM.RegisterSlashCommands()
     SLASH_COMMANDS["/sm"] = function(args)

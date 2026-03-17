@@ -1,54 +1,56 @@
--- SustainMonitor: Core Logic - Burn-Rate Calculation Engine
 SustainMonitor = SustainMonitor or {}
 local SM = SustainMonitor
 
-SM.name = "SustainMonitor"
+SM.name    = "SustainMonitor"
 SM.version = "1.5.0"
 
----------------------------------------------------------------------------
--- Constants
----------------------------------------------------------------------------
-local MIN_DELTA_MS  = 50      -- Ignore power updates closer than 50ms (noise)
-local DEFAULT_ALPHA = 0.3     -- EMA smoothing factor
-local TTE_ALPHA     = 0.15    -- Separate, slower EMA for time-to-empty display
-local BURN_RATE_THRESHOLD = -1 -- Minimum negative rate to count as "draining"
-local HISTORY_MAX   = 60      -- 30 seconds at 2 samples/sec
+SM.worldName   = GetWorldName()
+SM.displayName = GetDisplayName()
+
+local GetGameTimeMilliseconds = GetGameTimeMilliseconds
+local GetUnitPower    = GetUnitPower
+local GetPlayerStat   = GetPlayerStat
+local GetAbilityName  = GetAbilityName
+local mathFloor   = math.floor
+local mathAbs     = math.abs
+local mathMax     = math.max
+local mathMin     = math.min
+local stringFormat = string.format
 
 ---------------------------------------------------------------------------
--- Resource Data
+local MIN_DELTA_MS  = 50
+local DEFAULT_ALPHA = 0.3
+local TTE_ALPHA     = 0.15
+local BURN_RATE_THRESHOLD = -1
+local HISTORY_MAX   = 60
+
 ---------------------------------------------------------------------------
 local resources = {}
 local histories = {}
 local inCombat      = false
 local playerIsDead  = false
 
--- Ability cost data (per bar, per resource type)
-local barCosts = {}   -- barCosts[hotbarCategory][powerType] = { cost1, cost2, ... }
-local avgBarCost = {} -- avgBarCost[hotbarCategory][powerType] = average cost
-
--- Per-ability cost lookup: abilityCostMap[abilityId] = { cost=N, powerType=PT }
+local barCosts = {}
+local avgBarCost = {}
 local abilityCostMap = {}
 
--- Combat usage tracking: counts how often each slotted ability is cast
-local combatCastCounts = {}    -- combatCastCounts[abilityId] = count
-local totalCombatCasts = 0     -- total casts this combat
+local combatCastCounts = {}
+local totalCombatCasts = 0
 
 local function CreateResourceData()
     return {
         lastTime       = 0,
         lastValue      = 0,
         burnRate       = 0,
-        timeToEmpty    = -1,   -- -1 = infinite (regenerating)
+        timeToEmpty    = -1,
         current        = 0,
         max            = 0,
         currentPercent = 100,
-        regenRate      = 0,    -- combat regen rate from API
-        castsRemaining = -1,   -- -1 = unknown
+        regenRate      = 0,
+        castsRemaining = -1,
     }
 end
 
----------------------------------------------------------------------------
--- Mechanic-to-PowerType mapping (must be before InitCore)
 ---------------------------------------------------------------------------
 local mechanicToPower = {}
 
@@ -65,8 +67,6 @@ local function InitMechanicMap()
 end
 
 ---------------------------------------------------------------------------
--- Initialization
----------------------------------------------------------------------------
 function SM.InitCore()
     resources[POWERTYPE_MAGICKA] = CreateResourceData()
     resources[POWERTYPE_STAMINA] = CreateResourceData()
@@ -80,7 +80,6 @@ function SM.InitCore()
     SM.SnapshotAllResources()
 end
 
---- Read the current pool values + regen rates from the API
 function SM.SnapshotAllResources()
     local regenStats = {
         [POWERTYPE_MAGICKA] = STAT_MAGICKA_REGEN_COMBAT,
@@ -102,8 +101,6 @@ function SM.SnapshotAllResources()
     end
 end
 
----------------------------------------------------------------------------
--- Reset
 ---------------------------------------------------------------------------
 function SM.ResetResource(powerType)
     local res = resources[powerType]
@@ -134,8 +131,6 @@ function SM.ResetAllResources()
     SM.SnapshotAllResources()
 end
 
----------------------------------------------------------------------------
--- Ability Cost Scanning (per bar, per resource type)
 ---------------------------------------------------------------------------
 local function ScanSingleBar(hotbarCategory)
     local costs = { [POWERTYPE_MAGICKA] = {}, [POWERTYPE_STAMINA] = {} }
@@ -318,7 +313,6 @@ function SM.ScanAbilityCosts()
     end
 end
 
---- Get average ability cost for a resource on the currently active bar
 function SM.GetActiveBarAvgCost(powerType)
     local activeBar
     if GetActiveHotbarCategory then
@@ -335,7 +329,6 @@ function SM.GetActiveBarAvgCost(powerType)
     return 0
 end
 
---- Called on bar swap event (throttled: EVENT fires per-slot, we debounce to 250ms)
 local barSwapPending = false
 local BAR_SWAP_DEBOUNCE_MS = 250
 
@@ -350,15 +343,11 @@ function SM.OnActionSlotsUpdated()
 end
 
 ---------------------------------------------------------------------------
--- Combat Usage Tracking (learns your main spam skill)
----------------------------------------------------------------------------
-
--- Cost learning for abilities where API returns no cost (e.g. channeled beams)
-local pendingCostLearn = nil   -- { abilityId, stam, mag, time }
-local learnedCosts = {}        -- learnedCosts[abilityId] = { cost, powerType, samples }
-local COST_LEARN_DELAY  = 300  -- ms to wait before measuring resource drop
-local COST_LEARN_ALPHA  = 0.3  -- EMA smoothing for learned costs
-local COST_LEARN_MIN    = 100  -- minimum resource drop to count as a cost
+local pendingCostLearn = nil
+local learnedCosts = {}
+local COST_LEARN_DELAY  = 300
+local COST_LEARN_ALPHA  = 0.3
+local COST_LEARN_MIN    = 100
 
 function SM.ResetCombatUsage()
     combatCastCounts = {}
@@ -367,13 +356,11 @@ function SM.ResetCombatUsage()
     -- Keep learnedCosts across combats (they stabilize over time)
 end
 
---- Called from OnCombatEvent when player casts an ability (result=BEGIN)
 function SM.TrackAbilityUsage(abilityId)
     if not abilityId or abilityId <= 0 then return end
     combatCastCounts[abilityId] = (combatCastCounts[abilityId] or 0) + 1
     totalCombatCasts = totalCombatCasts + 1
 
-    -- If this ability has no known cost, set up observation to learn it
     if not abilityCostMap[abilityId] then
         local stamRes = resources[POWERTYPE_STAMINA]
         local magRes  = resources[POWERTYPE_MAGICKA]
@@ -389,7 +376,6 @@ function SM.TrackAbilityUsage(abilityId)
     end
 end
 
---- Measure resource drop after delay and learn the ability cost
 function SM.ResolveCostLearn()
     if not pendingCostLearn then return end
     local pending = pendingCostLearn
@@ -404,14 +390,11 @@ function SM.ResolveCostLearn()
     local stamDrop = pending.stam - stamRes.current
     local magDrop  = pending.mag  - magRes.current
 
-    -- Compensate for regen during the observation window
     local elapsed = (GetGameTimeMilliseconds() - pending.time) / 1000
     local stamRegen = stamRes.regenRate * elapsed
     local magRegen  = magRes.regenRate  * elapsed
-    local stamCost = stamDrop + stamRegen  -- add back what regen restored
+    local stamCost = stamDrop + stamRegen
     local magCost  = magDrop  + magRegen
-
-    -- Pick the dominant resource drain
     local cost, powerType
     if stamCost > COST_LEARN_MIN and stamCost > magCost then
         cost = stamCost
@@ -423,7 +406,6 @@ function SM.ResolveCostLearn()
 
     if not cost or cost <= 0 then return end
 
-    -- EMA smooth the observed cost
     local learned = learnedCosts[abilityId]
     if learned then
         learned.cost = COST_LEARN_ALPHA * cost + (1 - COST_LEARN_ALPHA) * learned.cost
@@ -433,10 +415,8 @@ function SM.ResolveCostLearn()
         learnedCosts[abilityId] = learned
     end
 
-    -- Store in abilityCostMap so it feeds into GetSmartCost
     abilityCostMap[abilityId] = { cost = learned.cost, powerType = learned.powerType }
 
-    -- Debug output
     local sv = SM.savedVars
     if sv and sv.debugMode then
         local name = GetAbilityName and GetAbilityName(abilityId) or "?"
@@ -451,19 +431,15 @@ function SM.ResolveCostLearn()
     if SM.LogEntry then
         SM.LogEntry("COST_LEARNED", {
             id = abilityId,
-            observed = math.floor(cost),
-            emaCost = math.floor(learned.cost),
+            observed = mathFloor(cost),
+            emaCost = mathFloor(learned.cost),
             pt = powerType,
             samples = learned.samples,
         })
     end
 end
 
---- Get the effective cost for "casts remaining" prediction.
---- Uses usage-weighted cost: the skill you spam most counts most.
---- Falls back to simple average if no usage data yet (start of combat).
 function SM.GetSmartCost(powerType)
-    -- If we have enough combat data, use usage-weighted cost
     if totalCombatCasts >= 5 then
         local weightedSum = 0
         local weightTotal = 0
@@ -481,7 +457,6 @@ function SM.GetSmartCost(powerType)
 
             local sv = SM.savedVars
             if sv and sv.debugMode and totalCombatCasts % 10 == 0 then
-                -- Find most-used skill for debug output
                 local topId, topCount = 0, 0
                 for id, cnt in pairs(combatCastCounts) do
                     local info = abilityCostMap[id]
@@ -498,16 +473,10 @@ function SM.GetSmartCost(powerType)
         end
     end
 
-    -- Fallback: use simple bar average (start of combat, no data yet)
     return SM.GetActiveBarAvgCost(powerType)
 end
 
 ---------------------------------------------------------------------------
--- Resource Focus (auto-detection and resolution)
----------------------------------------------------------------------------
-
---- Analyze combat cast counts to determine which resource the player uses most.
---- Falls back to slotted ability analysis if no combat data is available.
 function SM.GetAutoFocusResource()
     local magTotal, stamTotal = 0, 0
 
@@ -522,7 +491,6 @@ function SM.GetAutoFocusResource()
         end
     end
 
-    -- Fallback if no combat data: count slotted abilities per type
     if magTotal == 0 and stamTotal == 0 then
         for _, info in pairs(abilityCostMap) do
             if info.cost and info.cost > 0 then
@@ -537,16 +505,15 @@ function SM.GetAutoFocusResource()
 
     if magTotal > stamTotal then return POWERTYPE_MAGICKA
     elseif stamTotal > magTotal then return POWERTYPE_STAMINA
-    else return nil end  -- nil = no clear focus, warn on all
+    else return nil end
 end
 
---- Resolve the resourceFocus setting to a powerType constant (or nil for "all").
 function SM.GetFocusedResource()
     local sv = SM.savedVars
     if not sv then return nil end
 
     local focus = sv.resourceFocus or "auto"
-    if focus == "all" then return nil end  -- nil = no filter, warn all
+    if focus == "all" then return nil end
     if focus == "magicka" then return POWERTYPE_MAGICKA end
     if focus == "stamina" then return POWERTYPE_STAMINA end
     if focus == "health" then return POWERTYPE_HEALTH end
@@ -554,8 +521,6 @@ function SM.GetFocusedResource()
     return nil
 end
 
----------------------------------------------------------------------------
--- Accessors
 ---------------------------------------------------------------------------
 function SM.GetResourceData(powerType)
     return resources[powerType]
@@ -570,8 +535,6 @@ function SM.IsInCombat()
 end
 
 ---------------------------------------------------------------------------
--- History recording (called from periodic update every 500ms)
----------------------------------------------------------------------------
 function SM.RecordHistory()
     if not inCombat then return end
 
@@ -585,12 +548,9 @@ function SM.RecordHistory()
         end
     end
 
-    -- Combat log: periodic resource snapshots
     if SM.LogResourceSnapshot then SM.LogResourceSnapshot() end
 end
 
----------------------------------------------------------------------------
--- EVENT_POWER_UPDATE handler
 ---------------------------------------------------------------------------
 function SM.OnPowerUpdate(eventCode, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
     local res = resources[powerType]
@@ -599,41 +559,35 @@ function SM.OnPowerUpdate(eventCode, unitTag, powerIndex, powerType, powerValue,
     local sv = SM.savedVars
     if not sv or not sv.enabled then return end
 
-    -- Skip disabled resource types
     if powerType == POWERTYPE_MAGICKA and not sv.showMagicka then return end
     if powerType == POWERTYPE_STAMINA and not sv.showStamina then return end
     if powerType == POWERTYPE_HEALTH  and not sv.showHealth  then return end
 
     local now = GetGameTimeMilliseconds()
 
-    -- Update current pool snapshot
     res.current = powerValue
     res.max     = powerEffectiveMax
     res.currentPercent = (powerEffectiveMax > 0) and (powerValue / powerEffectiveMax * 100) or 100
 
-    -- Burn-Rate calculation (EMA)
     if res.lastTime > 0 then
         local dtMs = now - res.lastTime
         if dtMs >= MIN_DELTA_MS then
-            local dt          = dtMs / 1000              -- seconds
+            local dt          = dtMs / 1000
             local delta       = powerValue - res.lastValue
-            local instantRate = delta / dt               -- units per second
+            local instantRate = delta / dt
 
             local alpha    = sv.smoothingAlpha or DEFAULT_ALPHA
             res.burnRate   = alpha * instantRate + (1 - alpha) * res.burnRate
 
-            -- Time-to-empty (smoothed with separate EMA to avoid jitter)
             if res.burnRate < BURN_RATE_THRESHOLD then
-                local rawTTE = powerValue / math.abs(res.burnRate)
+                local rawTTE = powerValue / mathAbs(res.burnRate)
                 if res.timeToEmpty >= 0 then
-                    -- EMA smooth: blend new value into previous
                     res.timeToEmpty = TTE_ALPHA * rawTTE + (1 - TTE_ALPHA) * res.timeToEmpty
                 else
-                    -- First drain sample: initialize directly
                     res.timeToEmpty = rawTTE
                 end
             else
-                res.timeToEmpty = -1  -- regenerating or stable
+                res.timeToEmpty = -1
             end
         end
     end
@@ -641,27 +595,22 @@ function SM.OnPowerUpdate(eventCode, unitTag, powerIndex, powerType, powerValue,
     res.lastTime  = now
     res.lastValue = powerValue
 
-    -- Casts remaining (usage-weighted: your main spam skill counts most)
     local smartCost = SM.GetSmartCost(powerType)
     if smartCost > 0 then
-        res.castsRemaining = math.floor(powerValue / smartCost)
+        res.castsRemaining = mathFloor(powerValue / smartCost)
     else
         res.castsRemaining = -1
     end
 
-    -- Notify UI
     if SM.UpdateResourceUI then
         SM.UpdateResourceUI(powerType)
     end
 
-    -- Notify Warnings
     if SM.CheckWarnings then
         SM.CheckWarnings(powerType)
     end
 end
 
----------------------------------------------------------------------------
--- EVENT_PLAYER_COMBAT_STATE handler
 ---------------------------------------------------------------------------
 function SM.OnCombatState(eventCode, inCombatNow)
     inCombat = inCombatNow
@@ -680,13 +629,10 @@ function SM.OnCombatState(eventCode, inCombatNow)
 end
 
 ---------------------------------------------------------------------------
--- EVENT_PLAYER_ACTIVATED handler (login, zone change, resurrect)
----------------------------------------------------------------------------
 function SM.OnPlayerActivated()
     SM.ResetAllResources()
     inCombat = IsUnitInCombat("player")
 
-    -- Scan potion type on login/zone change
     if SM.ScanPotionType then SM.ScanPotionType() end
 
     if inCombat then
@@ -697,8 +643,6 @@ function SM.OnPlayerActivated()
 end
 
 ---------------------------------------------------------------------------
--- EVENT_PLAYER_DEAD handler
----------------------------------------------------------------------------
 function SM.OnPlayerDead()
     playerIsDead = true
     SM.ResetAllResources()
@@ -706,34 +650,26 @@ function SM.OnPlayerDead()
 end
 
 ---------------------------------------------------------------------------
--- EVENT_PLAYER_ALIVE handler (after death)
----------------------------------------------------------------------------
 function SM.OnPlayerAlive()
     playerIsDead = false
     SM.ResetAllResources()
 end
 
 ---------------------------------------------------------------------------
--- Death state query (used by Warnings.lua)
----------------------------------------------------------------------------
 function SM.IsPlayerDead()
     return playerIsDead
 end
 
 ---------------------------------------------------------------------------
--- Formatting helpers (used by UI)
----------------------------------------------------------------------------
 function SM.FormatRate(rate, compact)
-    local absRate = math.abs(rate)
+    local absRate = mathAbs(rate)
     local sign    = rate >= 0 and "+" or "-"
 
     local formatted
     if compact or absRate >= 10000 then
-        formatted = string.format("%.1fk", absRate / 1000)
-    elseif absRate >= 1000 then
-        formatted = string.format("%.0f", absRate)
+        formatted = stringFormat("%.1fk", absRate / 1000)
     else
-        formatted = string.format("%.0f", absRate)
+        formatted = stringFormat("%.0f", absRate)
     end
 
     return sign .. formatted .. "/s"
@@ -746,10 +682,9 @@ function SM.FormatTime(seconds, castsRemaining)
     elseif seconds > 99 then
         timeStr = ">99s"
     else
-        timeStr = string.format("~%.0fs", seconds)
+        timeStr = stringFormat("~%.0fs", seconds)
     end
 
-    -- Append casts remaining if available
     if castsRemaining and castsRemaining >= 0 then
         timeStr = timeStr .. " [" .. castsRemaining .. "]"
     end

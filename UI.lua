@@ -1,9 +1,12 @@
--- SustainMonitor: UI - HUD Element Creation & Updates (Style System)
 SustainMonitor = SustainMonitor or {}
 local SM = SustainMonitor
 
----------------------------------------------------------------------------
--- Layout Constants
+local GetGameTimeMilliseconds = GetGameTimeMilliseconds
+local mathMax      = math.max
+local mathMin      = math.min
+local mathFloor    = math.floor
+local stringFormat = string.format
+
 ---------------------------------------------------------------------------
 local PADDING        = 8
 local ROW_HEIGHT     = 20
@@ -28,13 +31,12 @@ local COMBAT_LABEL_W = 70
 local COMBAT_RATE_W  = 100
 local COMBAT_TIME_W  = 80
 
--- Colors (static defaults; warning & potion colors are read from saved vars at runtime)
+-- Colors
 local RESOURCE_COLORS = {}
 local COLOR_GREEN   = { 0.2, 0.8, 0.2, 1 }
 local COLOR_WHITE   = { 1,   1,   1,   1 }
 local COLOR_DIM     = { 0.5, 0.5, 0.5, 1 }
 
--- Helper: get customizable colors from saved vars (with hardcoded fallbacks)
 local function GetColorYellow()
     local sv = SM.savedVars
     return (sv and sv.colorWarningYellow) or { 1, 0.84, 0, 1 }
@@ -57,7 +59,6 @@ local function GetColorPotionReady()
 end
 
 ---------------------------------------------------------------------------
--- State
 ---------------------------------------------------------------------------
 local hudControl     = nil
 local rows           = {}
@@ -75,7 +76,6 @@ local historyTimer   = 0
 local rebuildCount   = 0    -- incremented on each rebuild to create unique names
 
 ---------------------------------------------------------------------------
--- Unique name generator for top-level windows
 ---------------------------------------------------------------------------
 local function TopLevelName(base)
     if rebuildCount > 0 then
@@ -85,7 +85,6 @@ local function TopLevelName(base)
 end
 
 ---------------------------------------------------------------------------
--- Helper: create a label (anonymous control - no global name needed)
 ---------------------------------------------------------------------------
 local function CreateLabel(parent, width, height, align, font)
     local label = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
@@ -99,7 +98,6 @@ local function CreateLabel(parent, width, height, align, font)
 end
 
 ---------------------------------------------------------------------------
--- Compute container dimensions
 ---------------------------------------------------------------------------
 local function ComputeDimensions(sv)
     local style   = sv.displayStyle or "simple"
@@ -145,7 +143,6 @@ local function ComputeDimensions(sv)
 end
 
 ---------------------------------------------------------------------------
--- Create HUD
 ---------------------------------------------------------------------------
 function SM.CreateHUD()
     if hudControl then return end
@@ -224,12 +221,10 @@ function SM.CreateHUD()
 
     hudControl:SetScale(sv.scale or 1.0)
 
-    -- Register as a HUD fragment so the control hides during full-screen UI (map, inventory, etc.)
     hudFragment = ZO_HUDFadeSceneFragment:New(hudControl)
     HUD_SCENE:AddFragment(hudFragment)
     HUD_UI_SCENE:AddFragment(hudFragment)
 
-    -- Override fragment Show to respect the addon's own visibility state (hideOutOfCombat)
     local originalShow = hudFragment.Show
     hudFragment.Show = function(self, ...)
         originalShow(self, ...)
@@ -252,7 +247,6 @@ function SM.CreateHUD()
 end
 
 ---------------------------------------------------------------------------
--- Create resource row (Simple & Analytical) - all children anonymous
 ---------------------------------------------------------------------------
 function SM.CreateResourceRow(powerType, yOffset, labelText, sv)
     local compact = sv.compactMode and (sv.displayStyle or "simple") == "simple"
@@ -304,7 +298,6 @@ function SM.CreateResourceRow(powerType, yOffset, labelText, sv)
 end
 
 ---------------------------------------------------------------------------
--- Create Combat style row
 ---------------------------------------------------------------------------
 function SM.CreateCombatRow(powerType, yOffset, labelText)
     local color = RESOURCE_COLORS[powerType] or COLOR_WHITE
@@ -332,12 +325,11 @@ function SM.CreateCombatRow(powerType, yOffset, labelText)
 end
 
 ---------------------------------------------------------------------------
--- Create potion row (Simple & Analytical)
 ---------------------------------------------------------------------------
 function SM.CreatePotionRow(yOffset, sv)
     local compact = sv.compactMode and (sv.displayStyle or "simple") == "simple"
     local potionSize = sv.potionFontSize or 22
-    local potionFont = string.format("$(BOLD_FONT)|%d|soft-shadow-thick", potionSize)
+    local potionFont = stringFormat("$(BOLD_FONT)|%d|soft-shadow-thick", potionSize)
 
     local row = WINDOW_MANAGER:CreateControl(nil, hudControl, CT_CONTROL)
     row:SetDimensions(hudControl:GetWidth() - PADDING * 2, ROW_HEIGHT)
@@ -357,12 +349,11 @@ function SM.CreatePotionRow(yOffset, sv)
 end
 
 ---------------------------------------------------------------------------
--- Create Combat potion row
 ---------------------------------------------------------------------------
 function SM.CreateCombatPotionRow(yOffset)
     local sv = SM.savedVars
     local potionSize = (sv and sv.potionFontSize) or 22
-    local potionFont = string.format("$(BOLD_FONT)|%d|soft-shadow-thick", potionSize)
+    local potionFont = stringFormat("$(BOLD_FONT)|%d|soft-shadow-thick", potionSize)
 
     local row = WINDOW_MANAGER:CreateControl(nil, hudControl, CT_CONTROL)
     row:SetDimensions(hudControl:GetWidth() - PADDING * 2, COMBAT_ROW_H)
@@ -380,8 +371,6 @@ function SM.CreateCombatPotionRow(yOffset)
 end
 
 ---------------------------------------------------------------------------
--- Create sparkline graph (Analytical) - supports both bar and line styles
--- All controls use CT_BACKDROP (proven reliable; CT_TEXTURE has render issues)
 ---------------------------------------------------------------------------
 function SM.CreateGraph(powerType, yOffset, color)
     local wm     = WINDOW_MANAGER
@@ -398,7 +387,6 @@ function SM.CreateGraph(powerType, yOffset, color)
     bg:SetCenterColor(0.05, 0.05, 0.05, 0.5)
     bg:SetEdgeColor(0.2, 0.2, 0.2, 0.3)
 
-    -- Bar style controls (legacy)
     local bars = {}
     for i = 1, GRAPH_BARS do
         local bar = wm:CreateControl(nil, container, CT_BACKDROP)
@@ -410,7 +398,6 @@ function SM.CreateGraph(powerType, yOffset, color)
         bars[i] = bar
     end
 
-    -- Line style controls: fill columns (CT_BACKDROP, top=opaque, bottom=faint)
     local fillColumns = {}
     for i = 1, GRAPH_BARS do
         local fillTop = wm:CreateControl(nil, container, CT_BACKDROP)
@@ -430,7 +417,6 @@ function SM.CreateGraph(powerType, yOffset, color)
         fillColumns[i] = { top = fillTop, bot = fillBot }
     end
 
-    -- Line style controls: dots at each data point (CT_BACKDROP, 2x2)
     local lineDots = {}
     for i = 1, GRAPH_BARS do
         local dot = wm:CreateControl(nil, container, CT_BACKDROP)
@@ -454,14 +440,13 @@ function SM.CreateGraph(powerType, yOffset, color)
 end
 
 ---------------------------------------------------------------------------
--- Create center-screen action prompt
 ---------------------------------------------------------------------------
 function SM.CreateActionPrompt(style)
     if actionPrompt then return end
 
     local sv = SM.savedVars
     local fontSize = (sv and sv.alertFontSize) or 28
-    local promptFont = string.format("$(BOLD_FONT)|%d|soft-shadow-thick", fontSize)
+    local promptFont = stringFormat("$(BOLD_FONT)|%d|soft-shadow-thick", fontSize)
 
     local prompt = WINDOW_MANAGER:CreateTopLevelWindow(TopLevelName("SustainMonitorPrompt"))
     prompt:SetDimensions(400, 50)
@@ -482,7 +467,6 @@ function SM.CreateActionPrompt(style)
 end
 
 ---------------------------------------------------------------------------
--- Show action prompt
 ---------------------------------------------------------------------------
 function SM.ShowActionPrompt(text, color, duration, blink)
     if not actionPrompt then return end
@@ -497,7 +481,6 @@ function SM.ShowActionPrompt(text, color, duration, blink)
 end
 
 ---------------------------------------------------------------------------
--- Accessor for Warnings.lua (flash effect uses this)
 ---------------------------------------------------------------------------
 function SM.GetRowControl(powerType)
     local rowData = rows[powerType]
@@ -505,7 +488,6 @@ function SM.GetRowControl(powerType)
 end
 
 ---------------------------------------------------------------------------
--- Update a single resource row
 ---------------------------------------------------------------------------
 function SM.UpdateResourceUI(powerType)
     local rowData = rows[powerType]
@@ -539,13 +521,12 @@ function SM.UpdateResourceUI(powerType)
     end
 
     if rowData.barFill and rowData.barBG then
-        local pct = math.max(0, math.min(1, res.currentPercent / 100))
-        rowData.barFill:SetDimensions(math.max(0, (BAR_WIDTH - 2) * pct), BAR_HEIGHT - 2)
+        local pct = mathMax(0, mathMin(1, res.currentPercent / 100))
+        rowData.barFill:SetDimensions(mathMax(0, (BAR_WIDTH - 2) * pct), BAR_HEIGHT - 2)
     end
 end
 
 ---------------------------------------------------------------------------
--- Update sparkline graphs (bar or line style)
 ---------------------------------------------------------------------------
 function SM.UpdateGraphs()
     local sv = SM.savedVars
@@ -563,37 +544,32 @@ function SM.UpdateGraphs()
             local graphH = GRAPH_HEIGHT
 
             if graphStyle == "line" then
-                -- Hide bar elements
                 for _, bar in ipairs(g.bars or {}) do bar:SetHidden(true) end
 
-                -- Update fill columns + dots (all anchored BOTTOMLEFT, just resize height)
                 for i = 1, GRAPH_BARS do
                     local vi = count - GRAPH_BARS + i
                     local pct = 0
                     if vi > 0 and vi <= count then
-                        pct = math.max(0, math.min(100, history[vi])) / 100
+                        pct = mathMax(0, mathMin(100, history[vi])) / 100
                     end
 
-                    local totalH = math.max(0, pct * (graphH - 2))
+                    local totalH = mathMax(0, pct * (graphH - 2))
                     local fc = g.fillColumns and g.fillColumns[i]
                     local dot = g.lineDots and g.lineDots[i]
 
                     if pct > 0 and totalH >= 1 then
-                        -- Top fill: upper half (more opaque)
-                        local halfH = math.max(1, totalH / 2)
+                        local halfH = mathMax(1, totalH / 2)
                         if fc then
                             fc.top:ClearAnchors()
                             fc.top:SetAnchor(BOTTOMLEFT, g.container, BOTTOMLEFT, (i - 1) * barW, -halfH)
                             fc.top:SetDimensions(barW, halfH)
                             fc.top:SetHidden(false)
 
-                            -- Bottom fill: lower half (faint)
                             fc.bot:ClearAnchors()
                             fc.bot:SetAnchor(BOTTOMLEFT, g.container, BOTTOMLEFT, (i - 1) * barW, 0)
                             fc.bot:SetDimensions(barW, halfH)
                             fc.bot:SetHidden(false)
                         end
-                        -- Dot at the top of the column
                         if dot then
                             dot:ClearAnchors()
                             dot:SetAnchor(BOTTOMLEFT, g.container, BOTTOMLEFT, (i - 1) * barW, -totalH)
@@ -609,21 +585,19 @@ function SM.UpdateGraphs()
                     end
                 end
             else
-                -- Bar style (legacy) — hide line elements
                 for _, dot in ipairs(g.lineDots or {}) do dot:SetHidden(true) end
                 for _, fc in ipairs(g.fillColumns or {}) do
                     if fc.top then fc.top:SetHidden(true) end
                     if fc.bot then fc.bot:SetHidden(true) end
                 end
 
-                -- Existing bar update logic
                 for i = 1, GRAPH_BARS do
                     local bar = g.bars and g.bars[i]
                     if bar then
                         local vi = count - GRAPH_BARS + i
                         if vi > 0 and vi <= count then
-                            local pct = math.max(0, math.min(100, history[vi])) / 100
-                            bar:SetDimensions(1, math.max(1, pct * (graphH - 2)))
+                            local pct = mathMax(0, mathMin(100, history[vi])) / 100
+                            bar:SetDimensions(1, mathMax(1, pct * (graphH - 2)))
                             bar:SetHidden(false)
                         else
                             bar:SetHidden(true)
@@ -636,7 +610,6 @@ function SM.UpdateGraphs()
 end
 
 ---------------------------------------------------------------------------
--- Get color based on warning state
 ---------------------------------------------------------------------------
 function SM.GetWarningColor(timeToEmpty, burnRate)
     if burnRate >= 0 then return COLOR_GREEN end
@@ -655,7 +628,6 @@ function SM.GetWarningColor(timeToEmpty, burnRate)
 end
 
 ---------------------------------------------------------------------------
--- Potion cooldown display
 ---------------------------------------------------------------------------
 function SM.UpdatePotionUI()
     if not potionRow then return end
@@ -663,29 +635,25 @@ function SM.UpdatePotionUI()
     local remaining = SM.GetPotionCooldownRemaining()
 
     if remaining and remaining > 0 then
-        potionRow.timer:SetText(string.format("%.1fs", remaining / 1000))
+        potionRow.timer:SetText(stringFormat("%.1fs", remaining / 1000))
         potionRow.timer:SetColor(unpack(COLOR_WHITE))
         potionRow.label:SetColor(unpack(COLOR_DIM))
     else
-        -- Check if potion matches the focused resource
         local sv = SM.savedVars
         local focusSetting = sv and sv.resourceFocus or "auto"
         local focusMismatch = false
 
         if focusSetting ~= "auto" and focusSetting ~= "all" then
-            -- Specific focus set — check if potion restores that resource
             local focusPT = SM.GetFocusedResource and SM.GetFocusedResource()
             if focusPT and SM.PotionRestoresResource then
                 local restores = SM.PotionRestoresResource(focusPT)
-                -- restores is nil (doesn't restore), true (unknown), or a number
                 if restores == nil then
-                    focusMismatch = true  -- potion doesn't restore the focused resource
+                    focusMismatch = true
                 end
             end
         end
 
         if focusMismatch then
-            -- Potion doesn't match focus → show "Fokus" in red as warning
             potionRow.timer:SetText(SM.L.FOCUS_MISMATCH or "Fokus!")
             potionRow.timer:SetColor(1, 0.2, 0.2, 1)
             potionRow.label:SetColor(1, 0.2, 0.2, 1)
@@ -710,7 +678,6 @@ function SM.UpdatePotionUI()
 end
 
 ---------------------------------------------------------------------------
--- Show / Hide
 ---------------------------------------------------------------------------
 function SM.ShowHUD()
     if not hudControl then return end
@@ -737,7 +704,6 @@ function SM.HideHUDDelayed()
 end
 
 ---------------------------------------------------------------------------
--- Periodic update (~10 fps)
 ---------------------------------------------------------------------------
 function SM.OnPeriodicUpdate()
     local sv = SM.savedVars
@@ -757,7 +723,6 @@ function SM.OnPeriodicUpdate()
         SM.UpdateGraphs()
     end
 
-    -- Action prompt blink effect
     if promptBlinking and actionPrompt and not actionPrompt.control:IsHidden() then
         if now - promptBlinkTimer >= PROMPT_BLINK_MS then
             promptBlinkState = not promptBlinkState
@@ -779,7 +744,6 @@ function SM.OnPeriodicUpdate()
 end
 
 ---------------------------------------------------------------------------
--- Rebuild HUD - hide old controls, increment counter, create new
 ---------------------------------------------------------------------------
 function SM.RebuildHUD()
     if hudControl then
@@ -803,7 +767,6 @@ function SM.RebuildHUD()
 end
 
 ---------------------------------------------------------------------------
--- Position / Scale helpers
 ---------------------------------------------------------------------------
 function SM.SetHUDScale(scale)
     if hudControl then hudControl:SetScale(scale) end
