@@ -3,7 +3,7 @@
 ## Author: Miguel
 ## Version: 1.5.0
 ## APIVersion: 101048 101049
-## AddOnVersion: 9
+## AddOnVersion: 10
 ## SavedVariables: SustainMonitorSV SustainMonitorLog
 ## DependsOn: LibAddonMenu-2.0>=41
 ## OptionalDependsOn: LibMediaProvider
