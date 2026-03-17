@@ -2,7 +2,7 @@ SustainMonitor = SustainMonitor or {}
 local SM = SustainMonitor
 
 SM.name    = "SustainMonitor"
-SM.version = "1.5.0"
+SM.version = "1.5.1"
 
 SM.worldName   = GetWorldName()
 SM.displayName = GetDisplayName()

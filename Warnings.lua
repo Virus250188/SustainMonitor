@@ -348,6 +348,7 @@ function SM.OnPotionUsed(eventCode, itemSoundCategory)
 
     Debug("Potion used event fired!")
 
+    EVENT_MANAGER:UnregisterForUpdate(SM.name .. "PotionDetect")
     EVENT_MANAGER:RegisterForUpdate(SM.name .. "PotionDetect", 20, function()
         local slotIndex = GetCurrentQuickslot()
         if not slotIndex then
@@ -408,12 +409,12 @@ end
 
 ---------------------------------------------------------------------------
 ---------------------------------------------------------------------------
-function SM.UpdatePotionState()
+function SM.UpdatePotionState(remaining)
     if SM.IsPlayerDead and SM.IsPlayerDead() then return end
     local sv = SM.savedVars
     if not sv then return end
 
-    local remaining = SM.GetPotionCooldownRemaining()
+    remaining = remaining or SM.GetPotionCooldownRemaining()
     local isOnCD = remaining > 0
 
     if potionWasOnCooldown and not isOnCD then
@@ -447,7 +448,7 @@ end
 local lastPotionAlertTime = 0
 local POTION_ALERT_COOLDOWN_MS = 3000
 
-function SM.CheckPotionAlert()
+function SM.CheckPotionAlert(remaining)
     if SM.IsPlayerDead and SM.IsPlayerDead() then return end
     local sv = SM.savedVars
     if not sv then return end
@@ -456,7 +457,8 @@ function SM.CheckPotionAlert()
     local now = GetGameTimeMilliseconds()
     if now - lastPotionAlertTime < POTION_ALERT_COOLDOWN_MS then return end
 
-    local potionReady = SM.GetPotionCooldownRemaining() <= 0
+    remaining = remaining or SM.GetPotionCooldownRemaining()
+    local potionReady = remaining <= 0
     if not potionReady then return end
 
     local focus = SM.GetFocusedResource and SM.GetFocusedResource()
@@ -484,13 +486,14 @@ end
 
 ---------------------------------------------------------------------------
 ---------------------------------------------------------------------------
-function SM.CheckHeavyAttack()
+function SM.CheckHeavyAttack(remaining)
     if SM.IsPlayerDead and SM.IsPlayerDead() then return end
     local sv = SM.savedVars
     if not sv or not sv.haEnabled then return end
     if not SM.IsInCombat() then return end
 
-    local potionReady = SM.GetPotionCooldownRemaining() <= 0
+    remaining = remaining or SM.GetPotionCooldownRemaining()
+    local potionReady = remaining <= 0
     if potionReady then return end
 
     local now = GetGameTimeMilliseconds()

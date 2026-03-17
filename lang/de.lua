@@ -121,6 +121,22 @@ L.SETTING_HIDE_OOC_TT       = "HUD automatisch ausblenden wenn nicht im Kampf"
 L.SETTING_FADE_DELAY        = "Ausblend-Verz\195\182gerung (Sekunden)"
 L.SETTING_FADE_DELAY_TT     = "Sekunden nach Kampfende bevor das HUD ausgeblendet wird"
 
+-- Settings: Ressourcen-Fokus
+L.SETTING_FOCUS             = "Ressourcen-Fokus"
+L.SETTING_FOCUS_TT          = "Welche Ressource bei Warnungen und Alerts priorisiert wird. Auto erkennt basierend auf deinem Kampfverhalten."
+L.FOCUS_AUTO                = "Auto (erkennen)"
+L.FOCUS_ALL                 = "Alle Ressourcen"
+L.FOCUS_MAGICKA             = "Magicka"
+L.FOCUS_STAMINA             = "Stamina"
+L.FOCUS_HEALTH              = "Leben"
+L.FOCUS_MISMATCH            = "Fokus!"
+
+-- Settings: Graph-Stil
+L.SETTING_GRAPH_STYLE       = "Graph-Stil"
+L.SETTING_GRAPH_STYLE_TT   = "Visueller Stil f\195\188r den Ressourcenverlauf-Graphen im Analytisch-Modus"
+L.GRAPH_STYLE_LINE          = "Linien-Graph"
+L.GRAPH_STYLE_BAR           = "Balken-Diagramm"
+
 -- Settings: Debug
 L.SETTINGS_DEBUG            = "Entwickler"
 L.SETTING_DEBUG_MODE        = "Debug-Modus"

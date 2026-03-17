@@ -629,10 +629,10 @@ end
 
 ---------------------------------------------------------------------------
 ---------------------------------------------------------------------------
-function SM.UpdatePotionUI()
+function SM.UpdatePotionUI(remaining)
     if not potionRow then return end
 
-    local remaining = SM.GetPotionCooldownRemaining()
+    remaining = remaining or SM.GetPotionCooldownRemaining()
 
     if remaining and remaining > 0 then
         potionRow.timer:SetText(stringFormat("%.1fs", remaining / 1000))
@@ -711,10 +711,11 @@ function SM.OnPeriodicUpdate()
 
     local now = GetGameTimeMilliseconds()
 
-    if potionRow and isHUDVisible then SM.UpdatePotionUI() end
-    if SM.UpdatePotionState then SM.UpdatePotionState() end
-    if SM.CheckPotionAlert then SM.CheckPotionAlert() end
-    if SM.CheckHeavyAttack then SM.CheckHeavyAttack() end
+    local potionRemaining = SM.GetPotionCooldownRemaining and SM.GetPotionCooldownRemaining() or 0
+    if potionRow and isHUDVisible then SM.UpdatePotionUI(potionRemaining) end
+    if SM.UpdatePotionState then SM.UpdatePotionState(potionRemaining) end
+    if SM.CheckPotionAlert then SM.CheckPotionAlert(potionRemaining) end
+    if SM.CheckHeavyAttack then SM.CheckHeavyAttack(potionRemaining) end
     if SM.UpdateFlash then SM.UpdateFlash() end
 
     if now - historyTimer >= 500 then

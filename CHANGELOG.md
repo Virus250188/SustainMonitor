@@ -1,5 +1,23 @@
 # Changelog - Sustain Monitor
 
+## v1.5.1 (2026-03-17)
+
+### Performance
+- **API-Caching:** `GetWorldName()` und `GetDisplayName()` werden einmalig bei Addon-Load gecacht statt bei jedem Zugriff neu abgefragt. Haeufig genutzte API-Funktionen (`GetGameTimeMilliseconds`, `math.floor`, `string.format` etc.) als lokale Referenzen am Dateianfang gespeichert fuer schnelleren Lookup in Hot-Path Funktionen.
+- **Potion-Cooldown Optimierung:** `GetPotionCooldownRemaining()` wird pro Update-Tick nur noch einmal aufgerufen und das Ergebnis an alle Verbraucher weitergegeben (vorher bis zu 4 separate API-Aufrufe pro 100ms Zyklus).
+
+### Bugfix
+- **Potion-Timer Stacking:** `RegisterForUpdate` in `OnPotionUsed` wird jetzt vor erneuter Registrierung zurueckgesetzt. Verhindert CPU-Last durch gestapelte Timer bei schneller Trank-Nutzung.
+
+### Lokalisierung
+- **Deutsche Uebersetzung vervollstaendigt:** Alle fehlenden Keys fuer Ressourcen-Fokus und Graph-Stil Einstellungen hinzugefuegt (12 Strings).
+
+### Sonstiges
+- Ungenutztes `LibMediaProvider` aus OptionalDependsOn entfernt
+- Redundante Kommentare entfernt fuer saubereren Code
+
+---
+
 ## v1.5.0 (2026-03-17)
 
 ### Neue Features
