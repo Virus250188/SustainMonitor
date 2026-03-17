@@ -226,6 +226,13 @@ function SM.RegisterEvents()
         em:AddFilterForEvent(SM.name .. "CombatLog", EVENT_COMBAT_EVENT,
             REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
     end
+
+    -- Quickslot change → re-scan potion type
+    if EVENT_ACTIVE_QUICKSLOT_CHANGED then
+        em:RegisterForEvent(SM.name .. "QuickslotChanged", EVENT_ACTIVE_QUICKSLOT_CHANGED, function()
+            SM.ScanPotionType()
+        end)
+    end
 end
 
 ---------------------------------------------------------------------------

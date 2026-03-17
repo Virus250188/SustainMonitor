@@ -61,6 +61,12 @@ SM.defaults = {
     colorPotionReady    = { 0.2, 0.8, 0.2, 1 },
     potionFontSize      = 22,
 
+    -- Resource Focus
+    resourceFocus   = "auto",
+
+    -- Graph Style
+    graphStyle      = "line",       -- "line" or "bar"
+
     -- Debug
     debugMode       = false,
 }
@@ -95,6 +101,9 @@ local soundOptions = {
     { label = "Endeavor Completed",      key = "ENDEAVOR_COMPLETED" },
     { label = "Armor Broken",            key = "HUD_ARMOR_BROKEN" },
     { label = "Battleground Warning",    key = "BATTLEGROUND_INACTIVITY_WARNING" },
+    { label = "BG Capture (Own Team)",  key = "BATTLEGROUND_CAPTURE_AREA_CAPTURED_OWN_TEAM" },
+    { label = "BG Capture (Other Team)", key = "BATTLEGROUND_CAPTURE_AREA_CAPTURED_OTHER_TEAM" },
+    { label = "BG Countdown Finished", key = "BATTLEGROUND_COUNTDOWN_FINISH" },
 }
 
 local soundLabels     = {}
@@ -324,6 +333,20 @@ function SM.InitSettings()
             disabled = function() return SM.savedVars.displayStyle ~= "analytical" end,
         },
         {
+            type = "dropdown",
+            name = L.SETTING_GRAPH_STYLE or "Graph Style",
+            tooltip = L.SETTING_GRAPH_STYLE_TT or "Visual style for the resource history graph in Analytical mode",
+            choices = { L.GRAPH_STYLE_LINE or "Line Graph", L.GRAPH_STYLE_BAR or "Bar Chart" },
+            choicesValues = { "line", "bar" },
+            getFunc = function() return SM.savedVars.graphStyle end,
+            setFunc = function(v)
+                SM.savedVars.graphStyle = v
+                SM.RebuildHUD()
+            end,
+            default = SM.defaults.graphStyle,
+            disabled = function() return not SM.savedVars.showGraph or SM.savedVars.displayStyle ~= "analytical" end,
+        },
+        {
             type = "checkbox",
             name = L.SETTING_SHOW_CASTS,
             tooltip = L.SETTING_SHOW_CASTS_TT,
@@ -407,6 +430,23 @@ function SM.InitSettings()
             getFunc = function() return SM.savedVars.warningEnabled end,
             setFunc = function(value) SM.savedVars.warningEnabled = value end,
             default = SM.defaults.warningEnabled,
+        },
+        {
+            type = "dropdown",
+            name = L.SETTING_FOCUS or "Resource Focus",
+            tooltip = L.SETTING_FOCUS_TT or "Which resource to prioritize for warnings and alerts. Auto detects based on combat usage.",
+            choices = {
+                L.FOCUS_AUTO or "Auto (detect)",
+                L.FOCUS_ALL or "All Resources",
+                L.FOCUS_MAGICKA or "Magicka",
+                L.FOCUS_STAMINA or "Stamina",
+                L.FOCUS_HEALTH or "Health",
+            },
+            choicesValues = { "auto", "all", "magicka", "stamina", "health" },
+            getFunc = function() return SM.savedVars.resourceFocus end,
+            setFunc = function(v) SM.savedVars.resourceFocus = v end,
+            default = SM.defaults.resourceFocus,
+            disabled = function() return not SM.savedVars.warningEnabled end,
         },
         {
             type = "slider",

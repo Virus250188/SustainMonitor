@@ -3,7 +3,7 @@ SustainMonitor = SustainMonitor or {}
 local SM = SustainMonitor
 
 SM.name = "SustainMonitor"
-SM.version = "1.4.0"
+SM.version = "1.5.0"
 
 ---------------------------------------------------------------------------
 -- Constants
@@ -503,6 +503,58 @@ function SM.GetSmartCost(powerType)
 end
 
 ---------------------------------------------------------------------------
+-- Resource Focus (auto-detection and resolution)
+---------------------------------------------------------------------------
+
+--- Analyze combat cast counts to determine which resource the player uses most.
+--- Falls back to slotted ability analysis if no combat data is available.
+function SM.GetAutoFocusResource()
+    local magTotal, stamTotal = 0, 0
+
+    for abilityId, count in pairs(combatCastCounts) do
+        local info = abilityCostMap[abilityId]
+        if info and info.cost and info.cost > 0 then
+            if info.powerType == POWERTYPE_MAGICKA then
+                magTotal = magTotal + info.cost * count
+            elseif info.powerType == POWERTYPE_STAMINA then
+                stamTotal = stamTotal + info.cost * count
+            end
+        end
+    end
+
+    -- Fallback if no combat data: count slotted abilities per type
+    if magTotal == 0 and stamTotal == 0 then
+        for _, info in pairs(abilityCostMap) do
+            if info.cost and info.cost > 0 then
+                if info.powerType == POWERTYPE_MAGICKA then
+                    magTotal = magTotal + 1
+                elseif info.powerType == POWERTYPE_STAMINA then
+                    stamTotal = stamTotal + 1
+                end
+            end
+        end
+    end
+
+    if magTotal > stamTotal then return POWERTYPE_MAGICKA
+    elseif stamTotal > magTotal then return POWERTYPE_STAMINA
+    else return nil end  -- nil = no clear focus, warn on all
+end
+
+--- Resolve the resourceFocus setting to a powerType constant (or nil for "all").
+function SM.GetFocusedResource()
+    local sv = SM.savedVars
+    if not sv then return nil end
+
+    local focus = sv.resourceFocus or "auto"
+    if focus == "all" then return nil end  -- nil = no filter, warn all
+    if focus == "magicka" then return POWERTYPE_MAGICKA end
+    if focus == "stamina" then return POWERTYPE_STAMINA end
+    if focus == "health" then return POWERTYPE_HEALTH end
+    if focus == "auto" then return SM.GetAutoFocusResource() end
+    return nil
+end
+
+---------------------------------------------------------------------------
 -- Accessors
 ---------------------------------------------------------------------------
 function SM.GetResourceData(powerType)
@@ -618,6 +670,7 @@ function SM.OnCombatState(eventCode, inCombatNow)
         SM.ResetAllResources()
         SM.ResetCombatUsage()
         SM.ScanAbilityCosts()
+        if SM.ScanPotionType then SM.ScanPotionType() end
         if SM.LogCombatStart then SM.LogCombatStart() end
         if SM.ShowHUD then SM.ShowHUD() end
     else
@@ -632,6 +685,9 @@ end
 function SM.OnPlayerActivated()
     SM.ResetAllResources()
     inCombat = IsUnitInCombat("player")
+
+    -- Scan potion type on login/zone change
+    if SM.ScanPotionType then SM.ScanPotionType() end
 
     if inCombat then
         if SM.ShowHUD then SM.ShowHUD() end

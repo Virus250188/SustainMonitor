@@ -133,6 +133,24 @@ SustainMonitor.L = {
     SETTING_DEBUG_MODE      = "Debug Mode",
     SETTING_DEBUG_MODE_TT   = "Print debug messages to chat (also toggleable via /sm debug)",
 
+    -- Resource Focus
+    SETTING_FOCUS       = "Resource Focus",
+    SETTING_FOCUS_TT    = "Which resource to prioritize for warnings and alerts. Auto detects based on your combat usage.",
+    FOCUS_AUTO          = "Auto (detect)",
+    FOCUS_ALL           = "All Resources",
+    FOCUS_MAGICKA       = "Magicka",
+    FOCUS_STAMINA       = "Stamina",
+    FOCUS_HEALTH        = "Health",
+
+    -- Potion Focus Mismatch
+    FOCUS_MISMATCH          = "Fokus!",
+
+    -- Graph Style
+    SETTING_GRAPH_STYLE     = "Graph Style",
+    SETTING_GRAPH_STYLE_TT  = "Visual style for the resource history graph in Analytical mode",
+    GRAPH_STYLE_LINE        = "Line Graph",
+    GRAPH_STYLE_BAR         = "Bar Chart",
+
     -- Slash commands
     SLASH_HELP = "Sustain Monitor commands:\n/sm - Show help\n/sm toggle - Toggle HUD\n/sm sounds - Play test sounds\n/sm debug - Toggle debug mode\n/sm dump - Print diagnostics",
 }

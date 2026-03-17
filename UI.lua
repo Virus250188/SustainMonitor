@@ -380,25 +380,28 @@ function SM.CreateCombatPotionRow(yOffset)
 end
 
 ---------------------------------------------------------------------------
--- Create sparkline graph (Analytical)
+-- Create sparkline graph (Analytical) - supports both bar and line styles
+-- All controls use CT_BACKDROP (proven reliable; CT_TEXTURE has render issues)
 ---------------------------------------------------------------------------
 function SM.CreateGraph(powerType, yOffset, color)
+    local wm     = WINDOW_MANAGER
     local graphW = GRAPH_BARS * 2
     local barW   = 2
 
-    local container = WINDOW_MANAGER:CreateControl(nil, hudControl, CT_CONTROL)
+    local container = wm:CreateControl(nil, hudControl, CT_CONTROL)
     container:SetDimensions(graphW, GRAPH_HEIGHT)
     container:SetAnchor(TOPLEFT, hudControl, TOPLEFT, PADDING, yOffset)
 
-    local bg = WINDOW_MANAGER:CreateControl(nil, container, CT_BACKDROP)
+    local bg = wm:CreateControl(nil, container, CT_BACKDROP)
     bg:SetAnchor(TOPLEFT, container, TOPLEFT, 0, 0)
     bg:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
     bg:SetCenterColor(0.05, 0.05, 0.05, 0.5)
     bg:SetEdgeColor(0.2, 0.2, 0.2, 0.3)
 
+    -- Bar style controls (legacy)
     local bars = {}
     for i = 1, GRAPH_BARS do
-        local bar = WINDOW_MANAGER:CreateControl(nil, container, CT_BACKDROP)
+        local bar = wm:CreateControl(nil, container, CT_BACKDROP)
         bar:SetDimensions(barW - 1, 1)
         bar:SetAnchor(BOTTOMLEFT, container, BOTTOMLEFT, (i - 1) * barW, 0)
         bar:SetCenterColor(color[1], color[2], color[3], 0.7)
@@ -407,7 +410,47 @@ function SM.CreateGraph(powerType, yOffset, color)
         bars[i] = bar
     end
 
-    return { container = container, bars = bars, bg = bg, color = color }
+    -- Line style controls: fill columns (CT_BACKDROP, top=opaque, bottom=faint)
+    local fillColumns = {}
+    for i = 1, GRAPH_BARS do
+        local fillTop = wm:CreateControl(nil, container, CT_BACKDROP)
+        fillTop:SetDimensions(barW, 1)
+        fillTop:SetAnchor(BOTTOMLEFT, container, BOTTOMLEFT, (i - 1) * barW, 0)
+        fillTop:SetCenterColor(color[1], color[2], color[3], 0.4)
+        fillTop:SetEdgeColor(0, 0, 0, 0)
+        fillTop:SetHidden(true)
+
+        local fillBot = wm:CreateControl(nil, container, CT_BACKDROP)
+        fillBot:SetDimensions(barW, 1)
+        fillBot:SetAnchor(BOTTOMLEFT, container, BOTTOMLEFT, (i - 1) * barW, 0)
+        fillBot:SetCenterColor(color[1], color[2], color[3], 0.12)
+        fillBot:SetEdgeColor(0, 0, 0, 0)
+        fillBot:SetHidden(true)
+
+        fillColumns[i] = { top = fillTop, bot = fillBot }
+    end
+
+    -- Line style controls: dots at each data point (CT_BACKDROP, 2x2)
+    local lineDots = {}
+    for i = 1, GRAPH_BARS do
+        local dot = wm:CreateControl(nil, container, CT_BACKDROP)
+        dot:SetDimensions(barW, 2)
+        dot:SetAnchor(BOTTOMLEFT, container, BOTTOMLEFT, (i - 1) * barW, 0)
+        dot:SetCenterColor(color[1], color[2], color[3], 1)
+        dot:SetEdgeColor(0, 0, 0, 0)
+        dot:SetDrawLevel(2)
+        dot:SetHidden(true)
+        lineDots[i] = dot
+    end
+
+    return {
+        container    = container,
+        bg           = bg,
+        color        = color,
+        bars         = bars,
+        lineDots     = lineDots,
+        fillColumns  = fillColumns,
+    }
 end
 
 ---------------------------------------------------------------------------
@@ -502,28 +545,89 @@ function SM.UpdateResourceUI(powerType)
 end
 
 ---------------------------------------------------------------------------
--- Update sparkline graphs
+-- Update sparkline graphs (bar or line style)
 ---------------------------------------------------------------------------
 function SM.UpdateGraphs()
     local sv = SM.savedVars
     if not sv or (sv.displayStyle or "simple") ~= "analytical" then return end
     if not sv.showGraph then return end
 
+    local graphStyle = sv.graphStyle or "line"
+    local barW = 2
+
     for powerType, rowData in pairs(rows) do
-        local graphData = rowData.graph
-        if graphData then
-            local history = SM.GetHistory(powerType)
-            if history then
-                local count = #history
+        local g = rowData.graph
+        local history = g and SM.GetHistory(powerType)
+        if g and history then
+            local count = #history
+            local graphH = GRAPH_HEIGHT
+
+            if graphStyle == "line" then
+                -- Hide bar elements
+                for _, bar in ipairs(g.bars or {}) do bar:SetHidden(true) end
+
+                -- Update fill columns + dots (all anchored BOTTOMLEFT, just resize height)
                 for i = 1, GRAPH_BARS do
-                    local bar = graphData.bars[i]
                     local vi = count - GRAPH_BARS + i
+                    local pct = 0
                     if vi > 0 and vi <= count then
-                        local pct = math.max(0, math.min(100, history[vi])) / 100
-                        bar:SetDimensions(1, math.max(1, pct * (GRAPH_HEIGHT - 2)))
-                        bar:SetHidden(false)
+                        pct = math.max(0, math.min(100, history[vi])) / 100
+                    end
+
+                    local totalH = math.max(0, pct * (graphH - 2))
+                    local fc = g.fillColumns and g.fillColumns[i]
+                    local dot = g.lineDots and g.lineDots[i]
+
+                    if pct > 0 and totalH >= 1 then
+                        -- Top fill: upper half (more opaque)
+                        local halfH = math.max(1, totalH / 2)
+                        if fc then
+                            fc.top:ClearAnchors()
+                            fc.top:SetAnchor(BOTTOMLEFT, g.container, BOTTOMLEFT, (i - 1) * barW, -halfH)
+                            fc.top:SetDimensions(barW, halfH)
+                            fc.top:SetHidden(false)
+
+                            -- Bottom fill: lower half (faint)
+                            fc.bot:ClearAnchors()
+                            fc.bot:SetAnchor(BOTTOMLEFT, g.container, BOTTOMLEFT, (i - 1) * barW, 0)
+                            fc.bot:SetDimensions(barW, halfH)
+                            fc.bot:SetHidden(false)
+                        end
+                        -- Dot at the top of the column
+                        if dot then
+                            dot:ClearAnchors()
+                            dot:SetAnchor(BOTTOMLEFT, g.container, BOTTOMLEFT, (i - 1) * barW, -totalH)
+                            dot:SetDimensions(barW, 2)
+                            dot:SetHidden(false)
+                        end
                     else
-                        bar:SetHidden(true)
+                        if fc then
+                            fc.top:SetHidden(true)
+                            fc.bot:SetHidden(true)
+                        end
+                        if dot then dot:SetHidden(true) end
+                    end
+                end
+            else
+                -- Bar style (legacy) — hide line elements
+                for _, dot in ipairs(g.lineDots or {}) do dot:SetHidden(true) end
+                for _, fc in ipairs(g.fillColumns or {}) do
+                    if fc.top then fc.top:SetHidden(true) end
+                    if fc.bot then fc.bot:SetHidden(true) end
+                end
+
+                -- Existing bar update logic
+                for i = 1, GRAPH_BARS do
+                    local bar = g.bars and g.bars[i]
+                    if bar then
+                        local vi = count - GRAPH_BARS + i
+                        if vi > 0 and vi <= count then
+                            local pct = math.max(0, math.min(100, history[vi])) / 100
+                            bar:SetDimensions(1, math.max(1, pct * (graphH - 2)))
+                            bar:SetHidden(false)
+                        else
+                            bar:SetHidden(true)
+                        end
                     end
                 end
             end
@@ -563,24 +667,44 @@ function SM.UpdatePotionUI()
         potionRow.timer:SetColor(unpack(COLOR_WHITE))
         potionRow.label:SetColor(unpack(COLOR_DIM))
     else
-        potionRow.timer:SetText(SM.L.READY)
-        local highlight = false
+        -- Check if potion matches the focused resource
         local sv = SM.savedVars
-        if sv then
-            for _, pt in ipairs({POWERTYPE_MAGICKA, POWERTYPE_STAMINA}) do
-                local res = SM.GetResourceData(pt)
-                if res and res.timeToEmpty >= 0 and res.timeToEmpty < (sv.warningThreshold1 or 10) then
+        local focusSetting = sv and sv.resourceFocus or "auto"
+        local focusMismatch = false
+
+        if focusSetting ~= "auto" and focusSetting ~= "all" then
+            -- Specific focus set — check if potion restores that resource
+            local focusPT = SM.GetFocusedResource and SM.GetFocusedResource()
+            if focusPT and SM.PotionRestoresResource then
+                local restores = SM.PotionRestoresResource(focusPT)
+                -- restores is nil (doesn't restore), true (unknown), or a number
+                if restores == nil then
+                    focusMismatch = true  -- potion doesn't restore the focused resource
+                end
+            end
+        end
+
+        if focusMismatch then
+            -- Potion doesn't match focus → show "Fokus" in red as warning
+            potionRow.timer:SetText(SM.L.FOCUS_MISMATCH or "Fokus!")
+            potionRow.timer:SetColor(1, 0.2, 0.2, 1)
+            potionRow.label:SetColor(1, 0.2, 0.2, 1)
+        else
+            potionRow.timer:SetText(SM.L.READY)
+            local highlight = false
+            for _, pt in ipairs({POWERTYPE_MAGICKA, POWERTYPE_STAMINA, POWERTYPE_HEALTH}) do
+                if SM.ShouldAlertPotion and SM.ShouldAlertPotion(pt) then
                     highlight = true
                     break
                 end
             end
-        end
-        if highlight then
-            potionRow.timer:SetColor(unpack(GetColorPotion()))
-            potionRow.label:SetColor(unpack(GetColorPotion()))
-        else
-            potionRow.timer:SetColor(unpack(GetColorPotionReady()))
-            potionRow.label:SetColor(unpack(GetColorPotion()))
+            if highlight then
+                potionRow.timer:SetColor(unpack(GetColorPotion()))
+                potionRow.label:SetColor(unpack(GetColorPotion()))
+            else
+                potionRow.timer:SetColor(unpack(GetColorPotionReady()))
+                potionRow.label:SetColor(unpack(GetColorPotion()))
+            end
         end
     end
 end
@@ -623,6 +747,7 @@ function SM.OnPeriodicUpdate()
 
     if potionRow and isHUDVisible then SM.UpdatePotionUI() end
     if SM.UpdatePotionState then SM.UpdatePotionState() end
+    if SM.CheckPotionAlert then SM.CheckPotionAlert() end
     if SM.CheckHeavyAttack then SM.CheckHeavyAttack() end
     if SM.UpdateFlash then SM.UpdateFlash() end
 

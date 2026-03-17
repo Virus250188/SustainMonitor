@@ -46,6 +46,9 @@ local potionCooldownDur  = 0
 local potionIsOnCooldown = false
 local potionWasOnCooldown = false
 
+-- Potion type detection
+local potionRestores = nil  -- nil = unknown/fallback, or { [POWERTYPE_X] = restoreAmount, ... }
+
 -- Heavy Attack state
 local lastHASuggestionTime = 0
 local HA_COOLDOWN_MS       = 3000   -- 3s cooldown (was 5s, too slow for fast drain)
@@ -61,6 +64,183 @@ local function Debug(msg)
 end
 
 ---------------------------------------------------------------------------
+-- Potion Type Detection
+---------------------------------------------------------------------------
+
+--- Scan the current quickslot potion to determine which resources it restores
+function SM.ScanPotionType()
+    potionRestores = nil  -- reset to fallback
+
+    local slotIndex = GetCurrentQuickslot()
+    if not slotIndex then
+        Debug("ScanPotionType: no quickslot index")
+        if SM.LogEntry then SM.LogEntry("POTION_SCAN", { error = "no_quickslot" }) end
+        return
+    end
+
+    -- Get item link (try with HOTBAR_CATEGORY_QUICKSLOT_WHEEL first)
+    local itemLink
+    if HOTBAR_CATEGORY_QUICKSLOT_WHEEL then
+        local ok, link = pcall(GetSlotItemLink, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        if ok and link and link ~= "" then itemLink = link end
+    end
+    if not itemLink then
+        local ok, link = pcall(GetSlotItemLink, slotIndex)
+        if ok and link and link ~= "" then itemLink = link end
+    end
+
+    if not itemLink or itemLink == "" then
+        Debug("ScanPotionType: no item link found")
+        if SM.LogEntry then SM.LogEntry("POTION_SCAN", { error = "no_item_link", slot = slotIndex }) end
+        return
+    end
+
+    -- Get on-use description
+    -- API: GetItemLinkOnUseAbilityInfo(link) → hasAbility, header, description, cooldown, ...
+    local ok, hasAbility, abilityHeader, abilityDescription = pcall(GetItemLinkOnUseAbilityInfo, itemLink)
+
+    -- Log ALL return values for debugging
+    if SM.LogEntry then
+        SM.LogEntry("POTION_SCAN_RAW", {
+            ok = tostring(ok),
+            hasAbil = tostring(hasAbility),
+            header = tostring(abilityHeader),
+            desc = tostring(abilityDescription),
+        })
+    end
+
+    if not ok or not hasAbility or not abilityDescription or abilityDescription == "" then
+        Debug("ScanPotionType: no on-use description. ok=" .. tostring(ok)
+            .. " hasAbil=" .. tostring(hasAbility)
+            .. " desc=" .. tostring(abilityDescription))
+        if SM.LogEntry then SM.LogEntry("POTION_SCAN", { error = "no_description" }) end
+        return
+    end
+
+    Debug("ScanPotionType: description = " .. tostring(abilityDescription))
+
+    -- Build localized resource name patterns (works in all languages: EN, DE, FR, etc.)
+    -- SI_ATTRIBUTES: 1=Health, 2=Magicka, 3=Stamina (localized by game client)
+    local magickaName = GetString and SI_ATTRIBUTES2 and GetString(SI_ATTRIBUTES2)
+    local staminaName = GetString and SI_ATTRIBUTES3 and GetString(SI_ATTRIBUTES3)
+    local healthName  = GetString and SI_ATTRIBUTES1 and GetString(SI_ATTRIBUTES1)
+
+    -- Log what SI_ATTRIBUTES resolved to
+    if SM.LogEntry then
+        SM.LogEntry("POTION_SCAN_NAMES", {
+            mag = tostring(magickaName),
+            stam = tostring(staminaName),
+            hp = tostring(healthName),
+        })
+    end
+
+    -- Collect all search terms per resource type (localized + English fallbacks)
+    local searchTerms = {
+        { names = {}, powerType = POWERTYPE_MAGICKA },
+        { names = {}, powerType = POWERTYPE_STAMINA },
+        { names = {}, powerType = POWERTYPE_HEALTH },
+    }
+
+    -- Localized names
+    if magickaName and magickaName ~= "" then searchTerms[1].names[#searchTerms[1].names + 1] = magickaName end
+    if staminaName and staminaName ~= "" then searchTerms[2].names[#searchTerms[2].names + 1] = staminaName end
+    if healthName  and healthName  ~= "" then searchTerms[3].names[#searchTerms[3].names + 1] = healthName  end
+
+    -- English fallbacks (always add, deduplicated later)
+    searchTerms[1].names[#searchTerms[1].names + 1] = "Magicka"
+    searchTerms[2].names[#searchTerms[2].names + 1] = "Stamina"
+    searchTerms[3].names[#searchTerms[3].names + 1] = "Health"
+
+    -- German fallbacks (common terms)
+    searchTerms[2].names[#searchTerms[2].names + 1] = "Ausdauer"
+    searchTerms[3].names[#searchTerms[3].names + 1] = "Leben"
+    searchTerms[3].names[#searchTerms[3].names + 1] = "Gesundheit"
+
+    -- French fallbacks
+    searchTerms[2].names[#searchTerms[2].names + 1] = "Endurance"
+    searchTerms[3].names[#searchTerms[3].names + 1] = "Vie"
+
+    -- Parse description for resource restore amounts
+    -- Strip ESO color/link codes first: |cXXXXXX, |r, |H...|h, |h, etc.
+    local cleanDesc = string.gsub(abilityDescription, "|[cC]%x%x%x%x%x%x", "")
+    cleanDesc = string.gsub(cleanDesc, "|[rR]", "")
+    cleanDesc = string.gsub(cleanDesc, "|[hH].-|[hH]", "")
+    cleanDesc = string.gsub(cleanDesc, "|[tT].-|[tT]", "")
+
+    if SM.LogEntry then
+        SM.LogEntry("POTION_SCAN_CLEAN", { cleanDesc = cleanDesc })
+    end
+
+    local parsed = {}
+    local lowerDesc = string.lower(cleanDesc)
+
+    for _, entry in ipairs(searchTerms) do
+        for _, name in ipairs(entry.names) do
+            if not parsed[entry.powerType] then
+                local lowerName = string.lower(name)
+                -- Pattern: number (with possible separators like . , or spaces) followed by resource name
+                local numStr = string.match(lowerDesc, "(%d[%d,%.%s]*)%s*" .. lowerName)
+                if numStr then
+                    -- Strip EVERYTHING that is not a digit
+                    numStr = string.gsub(numStr, "%D", "")
+                    local amount = tonumber(numStr)
+                    if amount and amount > 0 then
+                        parsed[entry.powerType] = amount
+                        Debug("ScanPotionType: matched '" .. name .. "' = " .. tostring(amount))
+                    end
+                end
+            end
+        end
+    end
+
+    -- Only set potionRestores if we found something
+    if next(parsed) then
+        potionRestores = parsed
+        for pt, amount in pairs(potionRestores) do
+            local ptName = "?"
+            if pt == POWERTYPE_MAGICKA then ptName = "Magicka"
+            elseif pt == POWERTYPE_STAMINA then ptName = "Stamina"
+            elseif pt == POWERTYPE_HEALTH then ptName = "Health" end
+            Debug("ScanPotionType: restores " .. ptName .. " = " .. tostring(amount))
+        end
+        if SM.LogEntry then SM.LogEntry("POTION_SCAN_OK", parsed) end
+    else
+        Debug("ScanPotionType: could not parse '" .. tostring(abilityDescription) .. "' (using fallback)")
+        if SM.LogEntry then SM.LogEntry("POTION_SCAN_FAIL", { desc = abilityDescription }) end
+    end
+end
+
+--- Returns the restore amount for a powerType, or nil if not restored.
+--- Returns true if potion type is unknown (fallback behavior).
+function SM.PotionRestoresResource(powerType)
+    if potionRestores == nil then return true end  -- unknown = assume yes (fallback)
+    return potionRestores[powerType]  -- returns amount or nil
+end
+
+--- Determines whether a potion alert should fire for the given powerType.
+--- Uses smart threshold when potion restore amount is known, falls back to TTE check.
+function SM.ShouldAlertPotion(powerType)
+    local restoreAmount = SM.PotionRestoresResource(powerType)
+    if not restoreAmount then return false end
+    if restoreAmount == true then
+        -- Fallback: unknown potion, use old TTE-based check
+        local sv = SM.savedVars
+        local res = SM.GetResourceData(powerType)
+        return res and res.timeToEmpty >= 0 and res.timeToEmpty < (sv.warningThreshold1 or 10)
+    end
+    -- Smart check: alert only when player can fully use the potion (no overheal waste)
+    local res = SM.GetResourceData(powerType)
+    if not res then return false end
+    local threshold = res.max - restoreAmount
+    return res.current <= threshold
+end
+
+--- Accessor for debug dump
+function SM.GetPotionRestores()
+    return potionRestores
+end
+
+---------------------------------------------------------------------------
 -- Initialization
 ---------------------------------------------------------------------------
 function SM.InitWarnings()
@@ -73,6 +253,7 @@ function SM.InitWarnings()
     potionIsOnCooldown  = false
     potionWasOnCooldown = false
     lastHASuggestionTime = 0
+    lastPotionAlertTime  = 0
 
     -- On init, check if potion is already on cooldown
     SM.PollPotionCooldown()
@@ -106,6 +287,10 @@ function SM.CheckWarnings(powerType)
     if SM.IsPlayerDead and SM.IsPlayerDead() then return end
     local sv = SM.savedVars
     if not sv or not sv.warningEnabled then return end
+
+    -- Resource Focus filter: skip warnings for non-focused resources
+    local focus = SM.GetFocusedResource and SM.GetFocusedResource()
+    if focus and powerType ~= focus then return end
 
     local res = SM.GetResourceData(powerType)
     if not res then return end
@@ -285,9 +470,9 @@ function SM.UpdatePotionState()
     if potionWasOnCooldown and not isOnCD then
         Debug("Potion became READY")
         local resourceLow = false
+        local focus = SM.GetFocusedResource and SM.GetFocusedResource()
         for _, pt in ipairs({ POWERTYPE_MAGICKA, POWERTYPE_STAMINA }) do
-            local res = SM.GetResourceData(pt)
-            if res and res.timeToEmpty >= 0 and res.timeToEmpty < (sv.warningThreshold1 or 10) then
+            if (not focus or pt == focus) and SM.ShouldAlertPotion(pt) then
                 resourceLow = true
                 break
             end
@@ -309,13 +494,61 @@ function SM.UpdatePotionState()
 end
 
 ---------------------------------------------------------------------------
--- Heavy Attack Suggestion
+-- Potion Alert (Priority 1: fires BEFORE heavy attack suggestion)
+-- Shows "USE POTION" when potion is ready and resource needs it
+---------------------------------------------------------------------------
+local lastPotionAlertTime = 0
+local POTION_ALERT_COOLDOWN_MS = 3000
+
+function SM.CheckPotionAlert()
+    if SM.IsPlayerDead and SM.IsPlayerDead() then return end
+    local sv = SM.savedVars
+    if not sv then return end
+    if not SM.IsInCombat() then return end
+
+    local now = GetGameTimeMilliseconds()
+    if now - lastPotionAlertTime < POTION_ALERT_COOLDOWN_MS then return end
+
+    -- Only check when potion is ready
+    local potionReady = SM.GetPotionCooldownRemaining() <= 0
+    if not potionReady then return end
+
+    -- Resource Focus filter
+    local focus = SM.GetFocusedResource and SM.GetFocusedResource()
+    local resourcesToCheck = { POWERTYPE_MAGICKA, POWERTYPE_STAMINA }
+    if focus and focus ~= POWERTYPE_HEALTH then
+        resourcesToCheck = { focus }
+    end
+
+    for _, powerType in ipairs(resourcesToCheck) do
+        if SM.ShouldAlertPotion(powerType) then
+            lastPotionAlertTime = now
+            Debug("Potion alert: resource low enough to benefit from potion")
+            if SM.LogEntry then SM.LogEntry("POTION_PROMPT", { reason = "resource_low", pt = powerType }) end
+            if sv.warningSound then
+                PlaySound(GetSoundPotionReady())
+            end
+            if SM.ShowActionPrompt then
+                local potionColor = (sv and sv.colorPotion) or { 0, 0.75, 1, 1 }
+                SM.ShowActionPrompt(SM.L.PROMPT_USE_POTION, potionColor, 2500, true)
+            end
+            return  -- one alert at a time
+        end
+    end
+end
+
+---------------------------------------------------------------------------
+-- Heavy Attack Suggestion (Priority 2: only when potion is on CD)
 ---------------------------------------------------------------------------
 function SM.CheckHeavyAttack()
     if SM.IsPlayerDead and SM.IsPlayerDead() then return end
     local sv = SM.savedVars
     if not sv or not sv.haEnabled then return end
     if not SM.IsInCombat() then return end
+
+    -- Priority rule: if potion is ready, CheckPotionAlert handles it → skip HA
+    local potionReady = SM.GetPotionCooldownRemaining() <= 0
+    if potionReady then return end
 
     local now = GetGameTimeMilliseconds()
     if now - lastHASuggestionTime < HA_COOLDOWN_MS then return end
@@ -324,7 +557,14 @@ function SM.CheckHeavyAttack()
     local haResourcePct = sv.haResourcePct or 50
     local CRITICAL_PCT  = 3   -- below this you can't cast abilities
 
-    for _, powerType in ipairs({ POWERTYPE_MAGICKA, POWERTYPE_STAMINA }) do
+    -- Resource Focus filter: only check the focused resource (if set)
+    local focus = SM.GetFocusedResource and SM.GetFocusedResource()
+    local resourcesToCheck = { POWERTYPE_MAGICKA, POWERTYPE_STAMINA }
+    if focus and focus ~= POWERTYPE_HEALTH then
+        resourcesToCheck = { focus }
+    end
+
+    for _, powerType in ipairs(resourcesToCheck) do
         local res = SM.GetResourceData(powerType)
         if res and res.burnRate < -1 then
             -- Trigger condition: TTE-based OR casts-based (whichever fires first)
@@ -350,21 +590,6 @@ function SM.CheckHeavyAttack()
                         tteTrig = tteTrigger and 1 or 0,
                         castsTrig = castsTrigger and 1 or 0,
                     })
-                end
-
-                -- Potion ready? → show "USE POTION" (blinking) instead of Heavy Attack
-                local potionReady = SM.GetPotionCooldownRemaining() <= 0
-                if potionReady then
-                    Debug("Potion READY -> showing potion prompt instead of HA")
-                    if SM.LogEntry then SM.LogEntry("POTION_PROMPT", { reason = "ready_during_HA" }) end
-                    if sv.warningSound then
-                        PlaySound(GetSoundPotionReady())
-                    end
-                    if SM.ShowActionPrompt then
-                        local potionColor = (sv and sv.colorPotion) or { 0, 0.75, 1, 1 }
-                        SM.ShowActionPrompt(SM.L.PROMPT_USE_POTION, potionColor, 2500, true)
-                    end
-                    return
                 end
 
                 -- Heavy Attack: RED + blink if critically low (<3% or 0 casts), GOLD otherwise
@@ -444,6 +669,19 @@ function SM.DumpDebugInfo()
         potionRemain > 0 and "ON COOLDOWN" or "READY",
         tostring(potionIsOnCooldown), potionRemain))
 
+    -- Potion type detection info
+    if potionRestores then
+        for pt, amount in pairs(potionRestores) do
+            local ptName = "?"
+            if pt == POWERTYPE_MAGICKA then ptName = "Magicka"
+            elseif pt == POWERTYPE_STAMINA then ptName = "Stamina"
+            elseif pt == POWERTYPE_HEALTH then ptName = "Health" end
+            d("  Potion restores: " .. ptName .. " = " .. tostring(amount))
+        end
+    else
+        d("  Potion type: unknown (using fallback)")
+    end
+
     local slot = GetCurrentQuickslot()
     d("  Quickslot index: " .. tostring(slot))
     if slot then
@@ -457,6 +695,30 @@ function SM.DumpDebugInfo()
         d(string.format("  GetSlotCooldownInfo(no wheel): ok=%s remain=%s dur=%s global=%s",
             tostring(ok), tostring(remain), tostring(dur), tostring(global)))
     end
+
+    -- Show raw potion description for debugging
+    local dumpSlot = GetCurrentQuickslot()
+    if dumpSlot then
+        local dumpLink
+        if HOTBAR_CATEGORY_QUICKSLOT_WHEEL then
+            local ok2, link2 = pcall(GetSlotItemLink, dumpSlot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+            if ok2 and link2 and link2 ~= "" then dumpLink = link2 end
+        end
+        if not dumpLink then
+            local ok2, link2 = pcall(GetSlotItemLink, dumpSlot)
+            if ok2 and link2 and link2 ~= "" then dumpLink = link2 end
+        end
+        if dumpLink then
+            local ok2, hasAbil, hdr, desc = pcall(GetItemLinkOnUseAbilityInfo, dumpLink)
+            d("  Potion raw desc: " .. tostring(desc))
+            d("  Potion hasAbility: " .. tostring(hasAbil))
+        end
+    end
+
+    -- Resource Focus info
+    local focusVal = SM.savedVars and SM.savedVars.resourceFocus or "?"
+    local focusPT = SM.GetFocusedResource and SM.GetFocusedResource() or "nil"
+    d("  Resource Focus: setting=" .. tostring(focusVal) .. " resolved=" .. tostring(focusPT))
 
     d("  HOTBAR_CATEGORY_QUICKSLOT_WHEEL = " .. tostring(HOTBAR_CATEGORY_QUICKSLOT_WHEEL))
     d("  ITEM_SOUND_CATEGORY_POTION = " .. tostring(ITEM_SOUND_CATEGORY_POTION))
