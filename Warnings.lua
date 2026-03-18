@@ -49,6 +49,8 @@ local potionRestores = nil
 
 local lastHASuggestionTime = 0
 local HA_COOLDOWN_MS       = 3000
+local lastPotionAlertTime  = 0
+local POTION_ALERT_COOLDOWN_MS = 3000
 
 ---------------------------------------------------------------------------
 ---------------------------------------------------------------------------
@@ -445,9 +447,6 @@ end
 
 ---------------------------------------------------------------------------
 ---------------------------------------------------------------------------
-local lastPotionAlertTime = 0
-local POTION_ALERT_COOLDOWN_MS = 3000
-
 function SM.CheckPotionAlert(remaining)
     if SM.IsPlayerDead and SM.IsPlayerDead() then return end
     local sv = SM.savedVars

@@ -12,14 +12,13 @@ local LOG_SNAPSHOT_MS = 500
 local logSnapshotTimer = 0
 local combatStartMs    = 0
 
-local worldName = SM.worldName
-
 ---------------------------------------------------------------------------
 local function OnAddonLoaded(eventCode, addonName)
     if addonName ~= SM.name then return end
 
     EVENT_MANAGER:UnregisterForEvent(SM.name .. "Load", EVENT_ADD_ON_LOADED)
 
+    local worldName = SM.worldName
     SM.savedVars = ZO_SavedVars:NewAccountWide("SustainMonitorSV", 1, worldName, SM.defaults)
     SM.logVars   = ZO_SavedVars:NewAccountWide("SustainMonitorLog", 1, worldName, { entries = {}, info = "" })
 

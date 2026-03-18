@@ -1,5 +1,14 @@
 # Changelog - Sustain Monitor
 
+## v1.5.3 (2026-03-18)
+
+### Bugfixes & Verbesserungen
+- **Channeled Abilities funktionieren wieder:** Die Kosten-Erkennung fuer Channeled Abilities (z.B. Beams) war seit mehreren API-Updates still kaputt, da die alte API-Funktion `GetAbilityCostOverTime` nicht mehr existiert. Ersetzt durch das aktuelle `GetAbilityCostPerTick` — Casts-Remaining Anzeige ist jetzt auch fuer Channels korrekt.
+- **Trank-Alert Timing korrigiert:** Internes Timing-Problem behoben, das unter seltenen Umstaenden dazu fuehren konnte, dass der Trank-Alert Cooldown nicht richtig griff.
+- **Aufraeumarbeiten:** Nicht mehr genutzten Code entfernt, unnoetige Variablen bereinigt.
+
+---
+
 ## v1.5.2 (2026-03-18)
 
 ### Bugfixes

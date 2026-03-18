@@ -2,7 +2,7 @@ SustainMonitor = SustainMonitor or {}
 local SM = SustainMonitor
 
 SM.name    = "SustainMonitor"
-SM.version = "1.5.2"
+SM.version = "1.5.3"
 
 SM.worldName   = GetWorldName()
 SM.displayName = GetDisplayName()
@@ -167,8 +167,8 @@ local function ScanSingleBar(hotbarCategory)
                 end
             end
 
-            -- Approach 2: GetAbilityCostOverTime — for channeled abilities (beams, etc.)
-            if not found and GetAbilityCostOverTime then
+            -- Approach 2: GetAbilityCostPerTick — for channeled abilities (beams, etc.)
+            if not found and GetAbilityCostPerTick then
                 for _, pt in ipairs({ POWERTYPE_MAGICKA, POWERTYPE_STAMINA }) do
                     local mechFlag = pt
                     if pt == POWERTYPE_MAGICKA and COMBAT_MECHANIC_FLAGS_MAGICKA then
@@ -176,25 +176,22 @@ local function ScanSingleBar(hotbarCategory)
                     elseif pt == POWERTYPE_STAMINA and COMBAT_MECHANIC_FLAGS_STAMINA then
                         mechFlag = COMBAT_MECHANIC_FLAGS_STAMINA
                     end
-                    local ok4, costPerTick, freqMs = pcall(GetAbilityCostOverTime, abilityId, mechFlag)
+                    local ok4, costPerTick = pcall(GetAbilityCostPerTick, abilityId, mechFlag)
                     if ok4 and costPerTick and costPerTick > 0 then
-                        -- costPerTick = cost per tick, freqMs = ms between ticks
-                        -- For "casts remaining" we want the minimum cost to start (= 1 tick)
                         costs[pt][#costs[pt] + 1] = costPerTick
                         abilityCostMap[abilityId] = { cost = costPerTick, powerType = pt }
                         found = true
                         if debug then
                             local ptName = (pt == POWERTYPE_MAGICKA) and "Mag" or "Stam"
-                            d(string.format("|c999999[SM Scan]|r Slot%d: %s [%d] = %d %s/tick every %dms (CostOverTime)",
-                                slotIndex, abilityName, abilityId, costPerTick, ptName, freqMs or 0))
+                            d(string.format("|c999999[SM Scan]|r Slot%d: %s [%d] = %d %s/tick (CostPerTick)",
+                                slotIndex, abilityName, abilityId, costPerTick, ptName))
                         end
                         break
                     end
                 end
-                -- Also try with raw mechanic flags 0-10 if above didn't work
                 if not found then
                     for mechFlag = 0, 10 do
-                        local ok5, costPerTick, freqMs = pcall(GetAbilityCostOverTime, abilityId, mechFlag)
+                        local ok5, costPerTick = pcall(GetAbilityCostPerTick, abilityId, mechFlag)
                         if ok5 and costPerTick and costPerTick > 0 then
                             local pt = mechanicToPower[mechFlag]
                                     or ((mechFlag >= 4) and POWERTYPE_STAMINA or POWERTYPE_MAGICKA)
@@ -204,8 +201,8 @@ local function ScanSingleBar(hotbarCategory)
                                 found = true
                                 if debug then
                                     local ptName = (pt == POWERTYPE_MAGICKA) and "Mag" or "Stam"
-                                    d(string.format("|c999999[SM Scan]|r Slot%d: %s [%d] = %d %s/tick every %dms (CostOverTime brute mech=%d)",
-                                        slotIndex, abilityName, abilityId, costPerTick, ptName, freqMs or 0, mechFlag))
+                                    d(string.format("|c999999[SM Scan]|r Slot%d: %s [%d] = %d %s/tick (CostPerTick brute mech=%d)",
+                                        slotIndex, abilityName, abilityId, costPerTick, ptName, mechFlag))
                                 end
                                 break
                             end
