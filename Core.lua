@@ -2,7 +2,7 @@ SustainMonitor = SustainMonitor or {}
 local SM = SustainMonitor
 
 SM.name    = "SustainMonitor"
-SM.version = "1.5.1"
+SM.version = "1.5.2"
 
 SM.worldName   = GetWorldName()
 SM.displayName = GetDisplayName()
@@ -167,28 +167,7 @@ local function ScanSingleBar(hotbarCategory)
                 end
             end
 
-            -- Approach 2: GetAbilityCost(id) — returns cost, mechanic
-            if not found then
-                local ok3, cost, mechanic = pcall(GetAbilityCost, abilityId)
-                if ok3 and cost and cost > 0 then
-                    local pt = mechanicToPower[mechanic]
-                    if pt and costs[pt] then
-                        costs[pt][#costs[pt] + 1] = cost
-                        abilityCostMap[abilityId] = { cost = cost, powerType = pt }
-                        found = true
-                        if debug then
-                            local ptName = (pt == POWERTYPE_MAGICKA) and "Mag" or "Stam"
-                            d(string.format("|c999999[SM Scan]|r Slot%d: %s [%d] = %d %s (1-arg, mech=%s)",
-                                slotIndex, abilityName, abilityId, cost, ptName, tostring(mechanic)))
-                        end
-                    elseif debug then
-                        d(string.format("|c999999[SM Scan]|r Slot%d: %s [%d] cost=%s mech=%s (UNMAPPED)",
-                            slotIndex, abilityName, abilityId, tostring(cost), tostring(mechanic)))
-                    end
-                end
-            end
-
-            -- Approach 3: GetAbilityCostOverTime — for channeled abilities (beams, etc.)
+            -- Approach 2: GetAbilityCostOverTime — for channeled abilities (beams, etc.)
             if not found and GetAbilityCostOverTime then
                 for _, pt in ipairs({ POWERTYPE_MAGICKA, POWERTYPE_STAMINA }) do
                     local mechFlag = pt
@@ -235,7 +214,7 @@ local function ScanSingleBar(hotbarCategory)
                 end
             end
 
-            -- Approach 4: Brute-force GetAbilityCost with all mechanic flags 0-10
+            -- Approach 3: Brute-force GetAbilityCost with all mechanic flags 0-10
             if not found then
                 for mechFlag = 0, 10 do
                     local ok6, cost = pcall(GetAbilityCost, abilityId, mechFlag)
@@ -256,7 +235,7 @@ local function ScanSingleBar(hotbarCategory)
                     end
                 end
                 if not found and debug then
-                    d(string.format("|c999999[SM Scan]|r Slot%d: %s [%d] = NO COST FOUND (all 4 approaches failed, will learn from combat)",
+                    d(string.format("|c999999[SM Scan]|r Slot%d: %s [%d] = NO COST FOUND (all 3 approaches failed, will learn from combat)",
                         slotIndex, abilityName, abilityId))
                 end
             end

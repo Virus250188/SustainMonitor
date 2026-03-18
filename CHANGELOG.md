@@ -1,5 +1,17 @@
 # Changelog - Sustain Monitor
 
+## v1.5.2 (2026-03-18)
+
+### Bugfixes
+- **Toter Code entfernt:** `GetAbilityCost` Approach 2 (1-arg Call mit erwartetem `cost, mechanic` Return) funktionierte nie, da die API nur `integer cost` zurueckgibt. Block entfernt, Ability-Cost Scan nutzt jetzt 3 statt 4 Approaches.
+- **Englische Lokalisierung:** `FOCUS_MISMATCH` war faelschlich auf Deutsch ("Fokus!") statt Englisch ("Focus!") im Default-Sprachfile.
+
+### Verbesserungen
+- **Settings-Panel Refresh:** `registerForRefresh = true` zur LibAddonMenu Panel-Konfiguration hinzugefuegt. Settings-Controls aktualisieren sich jetzt automatisch beim Oeffnen des Panels.
+- **EVENT_COMBAT_EVENT Signatur:** Fehlenden `overflow` Parameter zur Handler-Signatur hinzugefuegt (vollstaendige API-Konformitaet).
+
+---
+
 ## v1.5.1 (2026-03-17)
 
 ### Performance

@@ -143,7 +143,7 @@ SustainMonitor.L = {
     FOCUS_HEALTH        = "Health",
 
     -- Potion Focus Mismatch
-    FOCUS_MISMATCH          = "Fokus!",
+    FOCUS_MISMATCH          = "Focus!",
 
     -- Graph Style
     SETTING_GRAPH_STYLE     = "Graph Style",

@@ -131,7 +131,7 @@ end
 ---------------------------------------------------------------------------
 function SM.OnCombatEvent(eventCode, result, isError, abilityName, abilityGraphic,
     abilityActionSlotType, sourceName, sourceType, targetName, targetType,
-    hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId)
+    hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
 
     if sourceType ~= COMBAT_UNIT_TYPE_PLAYER then return end
 

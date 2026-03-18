@@ -140,6 +140,7 @@ function SM.InitSettings()
         displayName = "|cAAD1FF" .. L.ADDON_NAME .. "|r",
         author = "Miguel",
         version = SM.version,
+        registerForRefresh = true,
         registerForDefaults = true,
     }
 
