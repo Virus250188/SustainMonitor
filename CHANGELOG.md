@@ -1,5 +1,13 @@
 # Changelog - Sustain Monitor
 
+## v1.5.4 (2026-03-18)
+
+### Bugfixes
+- **Trank-Erkennung bereinigt:** Falsche franzoesische Suchbegriffe entfernt, die versehentlich in v1.5.0 mit reingerutscht waren. Trank-Erkennung stuetzt sich jetzt korrekt auf Deutsch und Englisch.
+- **Ability-Scan Logging verbessert:** Die erkannten Kosten (Magicka/Stamina) werden jetzt korrekt ins Debug-Log geschrieben.
+
+---
+
 ## v1.5.3 (2026-03-18)
 
 ### Bugfixes & Verbesserungen
@@ -42,7 +50,7 @@
 ## v1.5.0 (2026-03-17)
 
 ### Neue Features
-- **Trank-Typ Erkennung:** Das Addon erkennt jetzt automatisch welche Ressource der ausgeruestete Trank wiederherstellt (Magicka/Stamina/Health) und wie viel. Der "USE POTION" Alert feuert erst wenn genug Ressource fehlt, damit der Trank voll genutzt wird (kein Overheal-Verschwendung). Unterstuetzt alle Sprachen (DE/EN/FR).
+- **Trank-Typ Erkennung:** Das Addon erkennt jetzt automatisch welche Ressource der ausgeruestete Trank wiederherstellt (Magicka/Stamina/Health) und wie viel. Der "USE POTION" Alert feuert erst wenn genug Ressource fehlt, damit der Trank voll genutzt wird (kein Overheal-Verschwendung). Unterstuetzt Deutsch und Englisch.
 - **Ressourcen-Fokus:** Neues Dropdown in den Warnungs-Einstellungen (Auto/Alle/Magicka/Stamina/Health). Bei "Auto" wird anhand der im Kampf genutzten Faehigkeiten erkannt welche Ressource priorisiert werden soll. Warnungen und Alerts werden nur fuer die fokussierte Ressource ausgeloest, das HUD zeigt weiterhin alle Ressourcen.
 - **Trank-Fokus Warnung:** Wenn der ausgeruestete Trank nicht zur fokussierten Ressource passt (z.B. Health-Trank bei Stamina-Fokus), wird "Fokus!" in Rot statt "Bereit" angezeigt.
 - **Liniengraph:** Neuer Graph-Stil fuer den Analytischen Modus mit Farbverlauf-Fuellung und Datenpunkt-Markierungen. Der alte Balkengraph bleibt als Option erhalten (Settings > Display > Graph Style).

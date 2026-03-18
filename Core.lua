@@ -2,7 +2,7 @@ SustainMonitor = SustainMonitor or {}
 local SM = SustainMonitor
 
 SM.name    = "SustainMonitor"
-SM.version = "1.5.3"
+SM.version = "1.5.4"
 
 SM.worldName   = GetWorldName()
 SM.displayName = GetDisplayName()
@@ -245,7 +245,8 @@ local function ScanSingleBar(hotbarCategory)
                 for _, c in ipairs(costs[POWERTYPE_STAMINA]) do stamCost = stamCost + c end
                 SM.LogEntry("ABILITY_SCAN", {
                     slot = slotIndex, id = abilityId, name = abilityName,
-                    found = found, bar = hotbarCategory
+                    found = found, bar = hotbarCategory,
+                    magCost = magCost, stamCost = stamCost
                 })
             end
         end

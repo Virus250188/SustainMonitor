@@ -140,8 +140,6 @@ function SM.ScanPotionType()
     searchTerms[3].names[#searchTerms[3].names + 1] = "Leben"
     searchTerms[3].names[#searchTerms[3].names + 1] = "Gesundheit"
 
-    searchTerms[2].names[#searchTerms[2].names + 1] = "Endurance"
-    searchTerms[3].names[#searchTerms[3].names + 1] = "Vie"
 
     local cleanDesc = string.gsub(abilityDescription, "|[cC]%x%x%x%x%x%x", "")
     cleanDesc = string.gsub(cleanDesc, "|[rR]", "")
